@@ -1197,23 +1197,41 @@ async def test_push_summary_includes_all_categories(
     assert "handoff 누락" not in content
 
 
+async def _seed_existing_task(
+    db: AsyncSession, project: Project, *, external_id: str = "task-001"
+) -> Task:
+    """has_changes()=True 시나리오 트리거용 사전 TODO task — PLAN 에서 [x] 처리되면 checked 로 잡힘."""
+    t = Task(
+        project_id=project.id,
+        title="기존",
+        source=TaskSource.SYNCED_FROM_PLAN,
+        external_id=external_id,
+        status=TaskStatus.TODO,
+    )
+    db.add(t)
+    await db.commit()
+    await db.refresh(t)
+    return t
+
+
 async def test_push_summary_includes_handoff_missing_line(
     async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
 ):
-    """PLAN 변경 + handoff 부재 → content 에 ⚠️ handoff 누락 줄."""
+    """비-스킵 브랜치에서 PLAN 변경(checked) + handoff 부재 → ⚠️ handoff 누락 줄 발화."""
     proj = await _seed_project(async_session)
     proj.discord_webhook_url = "https://discord.com/api/webhooks/1/abc"
     await async_session.commit()
     await async_session.refresh(proj)
+    await _seed_existing_task(async_session, proj)
 
     head = "2" * 40
+    # main 은 자동 스킵 — feat/* 브랜치로 알림 발화 검증
     event = await _seed_event(
-        async_session, proj, head_sha=head,
+        async_session, proj, head_sha=head, branch="feat/task-001",
         commits=[{"id": head, "modified": ["PLAN.md"], "added": []}],
     )
 
-    plan_text = "## 태스크\n\n- [ ] [task-001] 새 task — @alice\n"
-    # handoff 파일 fetch 가 None — 부재로 시뮬레이션
+    plan_text = "## 태스크\n\n- [x] [task-001] 기존 — @alice\n"
 
     async def fake_fetch(repo, pat, sha, path):
         if path == "PLAN.md":
@@ -1221,7 +1239,7 @@ async def test_push_summary_includes_handoff_missing_line(
         return None  # handoff 부재
 
     async def fake_compare(repo, pat, base, head_sha):  # noqa: ARG001
-        return ["PLAN.md", "handoffs/main.md"]  # changed_files 에는 있지만 fetch 가 None
+        return ["PLAN.md", "handoffs/feat-task-001.md"]
 
     sent: list = []
     async def fake_send(content, url):
@@ -1237,7 +1255,189 @@ async def test_push_summary_includes_handoff_missing_line(
     assert len(sent) == 1
     content, _ = sent[0]
     assert "⚠️ handoff 누락" in content
-    assert "handoffs/main.md" in content
+    assert "handoffs/feat-task-001.md" in content
+
+
+async def test_main_branch_handoff_missing_auto_skipped(
+    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
+):
+    """main 브랜치는 통합 브랜치 컨벤션으로 handoff 누락 알림 자동 스킵.
+
+    PLAN 변경(✅ 완료) 줄은 그대로 떠야 하지만 ⚠️ handoff 누락 줄은 안 떠야 함.
+    """
+    proj = await _seed_project(async_session)
+    proj.discord_webhook_url = "https://discord.com/api/webhooks/1/abc"
+    await async_session.commit()
+    await async_session.refresh(proj)
+    await _seed_existing_task(async_session, proj)
+
+    head = "3" * 40
+    event = await _seed_event(
+        async_session, proj, head_sha=head, branch="main",
+        commits=[{"id": head, "modified": ["PLAN.md"], "added": []}],
+    )
+
+    plan_text = "## 태스크\n\n- [x] [task-001] 기존 — @alice\n"
+
+    async def fake_fetch(repo, pat, sha, path):
+        if path == "PLAN.md":
+            return plan_text
+        return None
+
+    async def fake_compare(repo, pat, base, head_sha):  # noqa: ARG001
+        return ["PLAN.md", "handoffs/main.md"]
+
+    sent: list = []
+    async def fake_send(content, url):
+        sent.append((content, url))
+
+    import app.services.discord_service as discord_mod
+    monkeypatch.setattr(discord_mod, "send_webhook", fake_send)
+
+    await process_event(
+        async_session, event, fetch_file=fake_fetch, fetch_compare=fake_compare,
+    )
+
+    # PLAN 변경 자체는 알림 ✅ 완료 줄로 떠야 함
+    assert len(sent) == 1
+    content, _ = sent[0]
+    assert "✅ 완료" in content
+    # 다만 handoff 누락 줄은 자동 스킵
+    assert "handoff 누락" not in content
+
+
+async def test_user_listed_skip_branch_no_handoff_missing(
+    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
+):
+    """사용자가 git_settings 에 적은 브랜치도 handoff 누락 알림 스킵."""
+    proj = await _seed_project(async_session)
+    proj.discord_webhook_url = "https://discord.com/api/webhooks/1/abc"
+    proj.handoff_skip_branches = "develop, staging"
+    await async_session.commit()
+    await async_session.refresh(proj)
+    await _seed_existing_task(async_session, proj)
+
+    head = "4" * 40
+    event = await _seed_event(
+        async_session, proj, head_sha=head, branch="develop",
+        commits=[{"id": head, "modified": ["PLAN.md"], "added": []}],
+    )
+
+    plan_text = "## 태스크\n\n- [x] [task-001] 기존 — @alice\n"
+
+    async def fake_fetch(repo, pat, sha, path):
+        if path == "PLAN.md":
+            return plan_text
+        return None
+
+    async def fake_compare(repo, pat, base, head_sha):  # noqa: ARG001
+        return ["PLAN.md", "handoffs/develop.md"]
+
+    sent: list = []
+    async def fake_send(content, url):
+        sent.append((content, url))
+
+    import app.services.discord_service as discord_mod
+    monkeypatch.setattr(discord_mod, "send_webhook", fake_send)
+
+    await process_event(
+        async_session, event, fetch_file=fake_fetch, fetch_compare=fake_compare,
+    )
+
+    assert len(sent) == 1
+    content, _ = sent[0]
+    assert "handoff 누락" not in content
+
+
+async def test_unlisted_branch_still_alerts(
+    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
+):
+    """skip 리스트에 없는 브랜치는 누락 알림 그대로 발화 (회귀 가드)."""
+    proj = await _seed_project(async_session)
+    proj.discord_webhook_url = "https://discord.com/api/webhooks/1/abc"
+    proj.handoff_skip_branches = "staging"  # hotfix 는 미포함
+    await async_session.commit()
+    await async_session.refresh(proj)
+    await _seed_existing_task(async_session, proj)
+
+    head = "5" * 40
+    event = await _seed_event(
+        async_session, proj, head_sha=head, branch="hotfix/x",
+        commits=[{"id": head, "modified": ["PLAN.md"], "added": []}],
+    )
+
+    plan_text = "## 태스크\n\n- [x] [task-001] 기존 — @alice\n"
+
+    async def fake_fetch(repo, pat, sha, path):
+        if path == "PLAN.md":
+            return plan_text
+        return None
+
+    async def fake_compare(repo, pat, base, head_sha):  # noqa: ARG001
+        return ["PLAN.md", "handoffs/hotfix-x.md"]
+
+    sent: list = []
+    async def fake_send(content, url):
+        sent.append((content, url))
+
+    import app.services.discord_service as discord_mod
+    monkeypatch.setattr(discord_mod, "send_webhook", fake_send)
+
+    await process_event(
+        async_session, event, fetch_file=fake_fetch, fetch_compare=fake_compare,
+    )
+
+    assert len(sent) == 1
+    content, _ = sent[0]
+    assert "⚠️ handoff 누락" in content
+
+
+async def test_no_meaningful_plan_changes_no_handoff_missing_alert(
+    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
+):
+    """PLAN.md 가 changed_files 에 있지만 의미적 변화 0건이면 누락 알림 안 뜸.
+
+    실제 시나리오: feat 브랜치에서 이미 처리된 상태가 dev 등 통합 브랜치로 PR 머지될 때.
+    forps DB 의 task 가 PLAN 상태와 동일 → _apply_plan 변화 0건 → has_changes()=False.
+    """
+    proj = await _seed_project(async_session)
+    proj.discord_webhook_url = "https://discord.com/api/webhooks/1/abc"
+    await async_session.commit()
+    await async_session.refresh(proj)
+
+    head = "6" * 40
+    # main / 사용자 스킵 영향 배제 위해 비-스킵 브랜치
+    event = await _seed_event(
+        async_session, proj, head_sha=head, branch="feat/x",
+        commits=[{"id": head, "modified": ["PLAN.md"], "added": []}],
+    )
+
+    # PLAN 에 task 1건 — 신규도 아니고 (forps DB 비어있음) checked 도 unchecked 도 아님.
+    # _apply_plan 신규 INSERT 동작 시 PlanChanges 가 변화로 잡지만, plan_text 가 비어있으면
+    # archived 도 없고 changes 0. 가장 단순한 시나리오는 빈 PLAN.
+    plan_text = "## 태스크\n\n"
+
+    async def fake_fetch(repo, pat, sha, path):
+        if path == "PLAN.md":
+            return plan_text
+        return None
+
+    async def fake_compare(repo, pat, base, head_sha):  # noqa: ARG001
+        return ["PLAN.md", "handoffs/feat-x.md"]
+
+    sent: list = []
+    async def fake_send(content, url):
+        sent.append((content, url))
+
+    import app.services.discord_service as discord_mod
+    monkeypatch.setattr(discord_mod, "send_webhook", fake_send)
+
+    await process_event(
+        async_session, event, fetch_file=fake_fetch, fetch_compare=fake_compare,
+    )
+
+    # 의미적 변화 0건 + handoff 누락 단독 → 알림 자체 None (외로운 누락 줄 방지)
+    assert len(sent) == 0
 
 
 async def test_apply_plan_resolves_assignee_on_insert(async_session: AsyncSession):

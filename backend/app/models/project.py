@@ -32,11 +32,15 @@ class Project(Base):
     discord_consecutive_failures: Mapped[int] = mapped_column(default=0, nullable=False)
     discord_disabled_at: Mapped[datetime | None] = mapped_column(default=None)
 
+    # handoff 누락 알림 스킵 브랜치 — 쉼표/줄바꿈 split, main 은 코드 레벨 하드코드 추가
+    handoff_skip_branches: Mapped[str] = mapped_column(default="", nullable=False)
+
     def __init__(self, **kwargs: object) -> None:
         kwargs.setdefault("git_default_branch", "main")
         kwargs.setdefault("plan_path", "PLAN.md")
         kwargs.setdefault("handoff_dir", "handoffs/")
         kwargs.setdefault("discord_consecutive_failures", 0)
+        kwargs.setdefault("handoff_skip_branches", "")
         super().__init__(**kwargs)
 
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
