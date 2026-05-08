@@ -26,6 +26,8 @@ class GitSettingsResponse(BaseModel):
     discord_enabled: bool
     discord_disabled_at: datetime | None
     discord_consecutive_failures: int
+    # handoff 누락 알림 스킵 브랜치 (쉼표/줄바꿈 split, main 은 자동 스킵 — 입력 불필요)
+    handoff_skip_branches: str
 
 
 class GitSettingsUpdate(BaseModel):
@@ -37,6 +39,7 @@ class GitSettingsUpdate(BaseModel):
     git_default_branch: str | None = None
     plan_path: str | None = None
     handoff_dir: str | None = None
+    handoff_skip_branches: str | None = None
     github_pat: str | None = Field(default=None, min_length=1)
 
 

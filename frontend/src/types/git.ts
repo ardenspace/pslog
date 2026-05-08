@@ -11,6 +11,8 @@ export interface GitSettings {
   discord_enabled: boolean;
   discord_disabled_at: string | null;       // ISO datetime
   discord_consecutive_failures: number;
+  // handoff 누락 알림 스킵 브랜치 (쉼표/줄바꿈 split, main 은 자동 스킵 — 입력 불필요)
+  handoff_skip_branches: string;
 }
 
 export interface GitSettingsUpdate {
@@ -18,6 +20,7 @@ export interface GitSettingsUpdate {
   git_default_branch?: string | null;
   plan_path?: string | null;
   handoff_dir?: string | null;
+  handoff_skip_branches?: string | null;
   github_pat?: string | null;  // 평문 입력 — 즉시 backend Fernet encrypt
 }
 

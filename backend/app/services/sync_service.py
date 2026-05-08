@@ -95,7 +95,15 @@ async def process_event(
         # 변경 있을 때만 dispatcher 호출 — no-op push noise 방지.
         # dispatcher 자체가 URL NULL / disabled / 네트워크 오류 swallow 하지만,
         # commit 후 ORM 접근이라 db.refresh 필요 없음 (rollback 안 했으니 expire 없음).
-        handoff_missing = plan_changed and not handoff_present
+        # handoff_missing — 통합 브랜치(main + 사용자 지정) 자동 스킵 + plan_changes 의미적
+        # 변화 0건이면 누락 단독 라인 무의미하니 같이 스킵.
+        skip_branches = _resolve_skip_branches(project.handoff_skip_branches)
+        plan_meaningfully_changed = plan_changes is not None and plan_changes.has_changes()
+        handoff_missing = (
+            plan_meaningfully_changed
+            and event.branch not in skip_branches
+            and not handoff_present
+        )
         content = _format_push_summary(
             pusher=event.pusher,
             branch=event.branch,
@@ -237,6 +245,20 @@ def _handoff_file_path(project: Project, branch: str) -> str:
     """`handoff_dir + branch.replace('/', '-') + '.md'`. 설계서 §6.2 위치 규약."""
     base = project.handoff_dir if project.handoff_dir.endswith("/") else project.handoff_dir + "/"
     return base + branch.replace("/", "-") + ".md"
+
+
+def _resolve_skip_branches(raw: str) -> set[str]:
+    """handoff 누락 알림 스킵 브랜치 집합 — main 자동 + 사용자 지정 합집합.
+
+    raw: `Project.handoff_skip_branches` (쉼표/줄바꿈 split, 공백 strip, 빈 항목 제거).
+    main 은 통합 브랜치 컨벤션의 절대 다수라 코드 레벨 하드코드 스킵.
+    """
+    user_listed = {
+        token.strip()
+        for token in raw.replace("\n", ",").split(",")
+        if token.strip()
+    }
+    return {"main", *user_listed}
 
 
 async def _collect_changed_files(

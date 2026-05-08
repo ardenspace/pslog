@@ -60,6 +60,7 @@ def _build_git_settings_response(project) -> GitSettingsResponse:
         ),
         discord_disabled_at=project.discord_disabled_at,
         discord_consecutive_failures=project.discord_consecutive_failures,
+        handoff_skip_branches=project.handoff_skip_branches,
     )
 
 
@@ -92,7 +93,13 @@ async def patch_git_settings(
         raise HTTPException(status_code=404, detail="Project not found")
 
     data = update.model_dump(exclude_unset=True)
-    for key in ("git_repo_url", "git_default_branch", "plan_path", "handoff_dir"):
+    for key in (
+        "git_repo_url",
+        "git_default_branch",
+        "plan_path",
+        "handoff_dir",
+        "handoff_skip_branches",
+    ):
         if key in data:
             setattr(project, key, data[key])
     if "github_pat" in data and data["github_pat"]:

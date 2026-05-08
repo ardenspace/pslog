@@ -29,6 +29,7 @@ function GitSettingsForm({ projectId, settings, onClose }: GitSettingsFormProps)
   const [repoUrl, setRepoUrl] = useState(settings.git_repo_url ?? '');
   const [planPath, setPlanPath] = useState(settings.plan_path);
   const [handoffDir, setHandoffDir] = useState(settings.handoff_dir);
+  const [skipBranches, setSkipBranches] = useState(settings.handoff_skip_branches);
   const [pat, setPat] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -41,6 +42,7 @@ function GitSettingsForm({ projectId, settings, onClose }: GitSettingsFormProps)
         git_repo_url: repoUrl || null,
         plan_path: planPath,
         handoff_dir: handoffDir,
+        handoff_skip_branches: skipBranches,
         ...(pat ? { github_pat: pat } : {}),
       });
       setPat('');
@@ -102,6 +104,22 @@ function GitSettingsForm({ projectId, settings, onClose }: GitSettingsFormProps)
           placeholder="handoffs/"
           className="border border-brand-blue/20 rounded-xl w-full px-3 py-2 text-sm focus:outline-none focus:shadow-sm"
         />
+      </div>
+
+      {/* handoff 누락 알림 스킵 브랜치 */}
+      <div>
+        <label className="font-bold text-sm block mb-1">
+          Handoff 누락 알림 스킵 브랜치
+        </label>
+        <input
+          value={skipBranches}
+          onChange={(e) => setSkipBranches(e.target.value)}
+          placeholder="develop, staging"
+          className="border border-brand-blue/20 rounded-xl w-full px-3 py-2 text-sm focus:outline-none focus:shadow-sm"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          쉼표/줄바꿈 구분. <code className="bg-gray-100 px-1">main</code> 은 자동 스킵.
+        </p>
       </div>
 
       {/* GitHub PAT */}
