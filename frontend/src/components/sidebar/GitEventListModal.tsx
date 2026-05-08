@@ -114,7 +114,7 @@ function EventRow({ event, onReprocess, isPending }: EventRowProps) {
           type="button"
           disabled={isPending}
           onClick={() => onReprocess(event.id)}
-          className="px-3 py-1.5 text-[11px] font-bold border border-brand-blue/20 bg-white/50 hover:bg-white/60 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-brand-blue"
+          className="whitespace-nowrap px-3 py-1.5 text-[11px] font-bold border border-brand-blue/20 bg-white/50 hover:bg-white/60 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-brand-blue"
         >
           {isPending ? '처리 중...' : '재처리'}
         </button>
