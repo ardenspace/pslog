@@ -20,9 +20,10 @@ import { ShareLinkManager } from '@/components/share/ShareLinkManager';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { ErrorsList } from '@/components/errors/ErrorsList';
 import { ErrorDetail } from '@/components/errors/ErrorDetail';
+import { DriftsList } from '@/components/drifts/DriftsList';
 import type { Task } from '@/types/task';
 
-type ViewMode = 'board' | 'table' | 'week' | 'errors';
+type ViewMode = 'board' | 'table' | 'week' | 'errors' | 'drift';
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
@@ -373,6 +374,16 @@ export function DashboardPage() {
                 >
                   Errors
                 </button>
+                <button
+                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 text-[12px] sm:text-sm font-medium transition-all rounded-full ${
+                    viewMode === 'drift'
+                      ? 'bg-brand-blue text-white shadow-md'
+                      : 'text-brand-blue hover:bg-white/60'
+                  }`}
+                  onClick={() => setViewMode('drift')}
+                >
+                  Drift
+                </button>
               </div>
             </div>
             <div className="flex items-center justify-between gap-4 sm:justify-end">
@@ -512,6 +523,21 @@ export function DashboardPage() {
               <ErrorsList
                 projectId={selectedProjectId}
                 onSelectGroup={(groupId) => setSelectedErrorGroupId(groupId)}
+              />
+            )
+          ) : viewMode === 'drift' ? (
+            !selectedProjectId ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center glass-panel p-8 sm:p-12 rounded-2xl max-w-sm">
+                  <p className="text-brand-blue/70 font-medium text-sm sm:text-base">
+                    ← 왼쪽에서 프로젝트를 선택하세요.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <DriftsList
+                projectId={selectedProjectId}
+                canEdit={myRole === 'owner' || myRole === 'editor'}
               />
             )
           ) : isWeekLoading ? (
