@@ -73,3 +73,33 @@ class GitHubPushPayload(BaseModel):
     def to_commits_json(self) -> list[dict[str, Any]]:
         """GitPushEvent.commits 컬럼에 그대로 저장할 직렬화."""
         return [c.model_dump() for c in self.commits]
+
+
+class GitHubPullRequestRef(BaseModel):
+    """pull_request.head / pull_request.base — ref(브랜치명) + sha."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    ref: str
+    sha: str
+
+
+class GitHubPullRequestBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    number: int
+    head: GitHubPullRequestRef
+    base: GitHubPullRequestRef
+
+
+class GitHubPullRequestPayload(BaseModel):
+    """GitHub "pull_request" 이벤트 — 결정 미승격(A) 평가에 필요한 필드만.
+
+    설계서: 2026-06-14-decision-truth-loop-design.md §5.3 (Q1: PR 웹훅).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    action: str
+    repository: GitHubRepository
+    pull_request: GitHubPullRequestBody

@@ -308,3 +308,76 @@ async def test_webhook_triggers_background_sync(
     assert res.status_code == 200
     # ASGITransport awaits BackgroundTasks before returning
     assert len(called_with) == 1
+
+
+# --- pull_request 이벤트 (결정 미승격 A) ---
+
+def _pr_body(repo_url: str, action: str = "opened") -> bytes:
+    return (
+        '{"action":"%s",'
+        '"repository":{"id":1,"full_name":"ardenspace/app-chak","html_url":"%s"},'
+        '"pull_request":{"number":7,'
+        '"head":{"ref":"feat/x","sha":"%s"},'
+        '"base":{"ref":"main","sha":"%s"}}}'
+        % (action, repo_url, "a" * 40, "b" * 40)
+    ).encode()
+
+
+async def test_pr_webhook_valid_triggers_drift_a(
+    client_with_db, async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+):
+    secret = "valid-secret"
+    repo = "https://github.com/ardenspace/app-chak"
+    await _seed_project_with_secret(async_session, repo, secret)
+    body = _pr_body(repo)
+    sig = _sign(body, secret)
+
+    called: list[tuple] = []
+
+    async def fake_run_drift_a(project_id, branch, head_sha, base_sha):
+        called.append((branch, head_sha, base_sha))
+
+    import app.api.v1.endpoints.webhooks as webhooks_module
+    monkeypatch.setattr(webhooks_module, "_run_drift_a", fake_run_drift_a)
+
+    res = await client_with_db.post(
+        "/api/v1/webhooks/github",
+        content=body,
+        headers={"X-Hub-Signature-256": sig, "X-GitHub-Event": "pull_request"},
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "pr_received"
+    assert called == [("feat/x", "a" * 40, "b" * 40)]
+
+
+async def test_pr_webhook_bad_signature_401(
+    client_with_db, async_session: AsyncSession
+):
+    repo = "https://github.com/ardenspace/app-chak"
+    await _seed_project_with_secret(async_session, repo, "real-secret")
+    body = _pr_body(repo)
+    res = await client_with_db.post(
+        "/api/v1/webhooks/github",
+        content=body,
+        headers={"X-Hub-Signature-256": _sign(body, "wrong"),
+                 "X-GitHub-Event": "pull_request"},
+    )
+    assert res.status_code == 401
+
+
+async def test_pr_webhook_ignored_action(
+    client_with_db, async_session: AsyncSession
+):
+    """action=closed 등은 평가 안 함 — 200 + ignored_action."""
+    repo = "https://github.com/ardenspace/app-chak"
+    secret = "valid-secret"
+    await _seed_project_with_secret(async_session, repo, secret)
+    body = _pr_body(repo, action="closed")
+    res = await client_with_db.post(
+        "/api/v1/webhooks/github",
+        content=body,
+        headers={"X-Hub-Signature-256": _sign(body, secret),
+                 "X-GitHub-Event": "pull_request"},
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "ignored_action"
