@@ -199,6 +199,17 @@ async def _process_inner(
                 "event %s: handoff %s returned 404 — skip", event.id, handoff_path
             )
 
+    # 결정-진실 루프 B: handoff↔PLAN 상태 모순 감지 (저장된 Handoff.parsed_tasks 사용).
+    # PLAN 또는 handoff 변경 시 항상 재평가. flush 만 — commit 은 process_event 가 담당.
+    from app.services import drift_service
+    try:
+        await drift_service.detect_status_contradictions(
+            db, project_id=project.id, branch=event.branch,
+            commit_sha=event.head_commit_sha,
+        )
+    except Exception:
+        logger.exception("drift(B) detection failed for event %s", event.id)
+
     return plan_changes, handoff_present, plan_changed
 
 
