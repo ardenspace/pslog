@@ -10,6 +10,7 @@ from app.models.log_ingest_token import LogIngestToken
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.error_group import ErrorGroup, ErrorGroupStatus
 from app.models.log_event import LogEvent, LogLevel
+from app.models.drift import Drift, DriftStatus, DriftType
 
 __all__ = [
     "User",
@@ -29,4 +30,7 @@ __all__ = [
     "ErrorGroupStatus",
     "LogEvent",
     "LogLevel",
+    "Drift",
+    "DriftStatus",
+    "DriftType",
 ]

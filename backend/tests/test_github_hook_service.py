@@ -67,7 +67,7 @@ async def test_create_hook_posts_correct_body(monkeypatch: pytest.MonkeyPatch):
     body = json.loads(captured["body"])
     assert body["name"] == "web"
     assert body["active"] is True
-    assert body["events"] == ["push"]
+    assert body["events"] == ["push", "pull_request"]
     assert body["config"]["url"] == "https://forps.example.com/api/v1/webhooks/github"
     assert body["config"]["secret"] == "my-secret"
     assert body["config"]["content_type"] == "json"

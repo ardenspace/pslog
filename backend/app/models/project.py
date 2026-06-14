@@ -22,6 +22,7 @@ class Project(Base):
     git_repo_url: Mapped[str | None] = mapped_column(default=None)
     git_default_branch: Mapped[str] = mapped_column(default="main")
     plan_path: Mapped[str] = mapped_column(default="PLAN.md")
+    decisions_path: Mapped[str] = mapped_column(default="DECISIONS.md", server_default="DECISIONS.md")
     handoff_dir: Mapped[str] = mapped_column(default="handoffs/")
     last_synced_commit_sha: Mapped[str | None] = mapped_column(default=None)
     webhook_secret_encrypted: Mapped[bytes | None] = mapped_column(default=None)
@@ -38,6 +39,7 @@ class Project(Base):
     def __init__(self, **kwargs: object) -> None:
         kwargs.setdefault("git_default_branch", "main")
         kwargs.setdefault("plan_path", "PLAN.md")
+        kwargs.setdefault("decisions_path", "DECISIONS.md")
         kwargs.setdefault("handoff_dir", "handoffs/")
         kwargs.setdefault("discord_consecutive_failures", 0)
         kwargs.setdefault("handoff_skip_branches", "")

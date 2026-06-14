@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import decrypt_secret
 from app.database import AsyncSessionLocal, get_db
-from app.schemas.webhook import GitHubPushPayload
+from app.schemas.webhook import GitHubPullRequestPayload, GitHubPushPayload
 from app.services.git_repo_service import fetch_compare_files, fetch_file
 from app.services.github_webhook_service import (
     find_project_by_repo_url,
@@ -46,6 +46,12 @@ async def receive_github_push(
     Phase 2 범위: raw 보존만. 파싱/sync는 Phase 4.
     """
     body = await request.body()
+
+    # pull_request 이벤트 — 결정 미승격(A) 평가
+    if x_github_event == "pull_request":
+        return await _handle_pull_request(
+            background_tasks, db, body, x_hub_signature_256
+        )
 
     # push 이벤트만 처리 — 다른 이벤트는 200 ACK + skip
     if x_github_event != "push":
@@ -107,3 +113,70 @@ async def _run_sync_in_new_session(event_id):
             )
     except Exception:
         logger.exception("background sync failed for event %s", event_id)
+
+
+# PR 열림 시 action — 이 외(예: closed)는 skip
+_PR_EVAL_ACTIONS = {"opened", "reopened", "synchronize", "ready_for_review"}
+
+
+async def _handle_pull_request(background_tasks, db, body, signature):
+    """pull_request 이벤트 → 서명 검증 후 결정 미승격(A) 평가를 백그라운드로."""
+    from app.services import drift_service  # noqa: F401  (참조 보장)
+
+    try:
+        payload = GitHubPullRequestPayload.model_validate_json(body)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid PR payload")
+
+    if payload.action not in _PR_EVAL_ACTIONS:
+        return {"status": "ignored_action", "action": payload.action}
+
+    project = await find_project_by_repo_url(db, payload.repository.html_url)
+    if project is None:
+        logger.warning("PR webhook for unknown repo: %s", payload.repository.html_url)
+        return {"status": "unknown_repo"}
+    if project.webhook_secret_encrypted is None:
+        logger.warning("project %s has git_repo_url but no webhook secret", project.id)
+        raise HTTPException(status_code=401, detail="Webhook secret not configured")
+    try:
+        secret = decrypt_secret(project.webhook_secret_encrypted)
+    except InvalidToken:
+        logger.error("failed to decrypt webhook secret for project %s", project.id)
+        raise HTTPException(status_code=500, detail="Secret decryption failed")
+    if not verify_signature(body, signature, secret):
+        logger.warning("PR webhook signature verification failed for project %s", project.id)
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    pr = payload.pull_request
+    background_tasks.add_task(
+        _run_drift_a, project.id, pr.head.ref, pr.head.sha, pr.base.sha
+    )
+    return {"status": "pr_received", "number": pr.number}
+
+
+async def _run_drift_a(project_id, branch, head_sha, base_sha):
+    """BackgroundTask — 결정 미승격(A) 평가 + 신규 OPEN Discord 알림."""
+    from app.models.project import Project
+    from app.services import drift_service, notification_dispatcher
+
+    try:
+        async with AsyncSessionLocal() as db:
+            project = await db.get(Project, project_id)
+            if project is None:
+                return
+            newly = await drift_service.detect_unpromoted_decisions(
+                db, project=project, branch=branch,
+                head_sha=head_sha, base_sha=base_sha,
+                fetch_file=fetch_file, fetch_compare=fetch_compare_files,
+            )
+            await db.commit()
+            content = drift_service.format_drift_alert(newly)
+            if content:
+                try:
+                    await notification_dispatcher.dispatch_discord_alert(db, project, content)
+                except Exception:
+                    logger.exception("drift(A) alert dispatch failed: %s", project_id)
+    except Exception:
+        logger.exception(
+            "drift(A) detection failed: project=%s branch=%s", project_id, branch
+        )

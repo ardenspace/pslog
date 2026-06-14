@@ -36,6 +36,19 @@ class FreeNotes(BaseModel):
     blockers: str | None = None
 
 
+class Decision(BaseModel):
+    """`### 결정` 서브섹션의 한 항목 — 구현 중 기획과 달라진 결정.
+
+    형식: `- [task-NNN] <무엇 바꿈> — <왜> → DECISIONS|ADR-NNN`
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    external_id: str | None    # "task-001" — 없을 수도 있음(브랜치 전체 결정)
+    text: str                  # 마커 제외 본문
+    promoted: bool             # `→ DECISIONS` / `→ ADR` 마커 존재 여부
+
+
 class HandoffSection(BaseModel):
     """`## YYYY-MM-DD` 한 섹션."""
 
@@ -45,6 +58,7 @@ class HandoffSection(BaseModel):
     checks: list[CheckItem] = Field(default_factory=list)
     subtasks: list[Subtask] = Field(default_factory=list)
     free_notes: FreeNotes = Field(default_factory=FreeNotes)
+    decisions: list[Decision] = Field(default_factory=list)
 
 
 class ParsedHandoff(BaseModel):

@@ -7,3 +7,4 @@ export * from './share';
 export * from './git';
 export * from './error';
 export * from './log';
+export * from './drift';

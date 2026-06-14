@@ -28,6 +28,10 @@ import type {
   ErrorGroupStatus,
   ErrorGroupStatusUpdateRequest,
   ErrorGroupSummary,
+  DriftListResponse,
+  DriftSummary,
+  DriftStatus,
+  DriftStatusUpdateRequest,
   LogEventListResponse,
   LogLevel,
 } from '@/types';
@@ -167,6 +171,20 @@ export const api = {
     ) =>
       apiClient.patch<ErrorGroupSummary>(
         `/projects/${projectId}/errors/${groupId}`,
+        data,
+      ),
+  },
+
+  drifts: {
+    list: (projectId: string, params?: { status?: DriftStatus }) =>
+      apiClient.get<DriftListResponse>(`/projects/${projectId}/drifts`, { params }),
+    transition: (
+      projectId: string,
+      driftId: string,
+      data: DriftStatusUpdateRequest,
+    ) =>
+      apiClient.patch<DriftSummary>(
+        `/projects/${projectId}/drifts/${driftId}`,
         data,
       ),
   },

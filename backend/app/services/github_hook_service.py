@@ -50,7 +50,7 @@ async def create_hook(
     body = {
         "name": "web",
         "active": True,
-        "events": ["push"],
+        "events": ["push", "pull_request"],
         "config": {
             "url": callback_url,
             "content_type": "json",
@@ -79,7 +79,7 @@ async def update_hook(
     url = f"{_GITHUB_API}/repos/{owner}/{repo}/hooks/{hook_id}"
     body = {
         "active": True,
-        "events": ["push"],
+        "events": ["push", "pull_request"],
         "config": {
             "url": callback_url,
             "content_type": "json",
