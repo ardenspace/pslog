@@ -81,7 +81,7 @@ async def process_event(
     event_head_sha = event.head_commit_sha
 
     try:
-        plan_changes, handoff_present, plan_changed = await _process_inner(
+        plan_changes, handoff_present, plan_changed, drift_alert = await _process_inner(
             db, event, project, fetch_file=fetch_file, fetch_compare=fetch_compare,
         )
         # M-6: 성공 시 project.last_synced_commit_sha 를 head 로 갱신.
@@ -118,6 +118,15 @@ async def process_event(
             except Exception:
                 logger.exception(
                     "Failed to dispatch push summary alert for event %s", event_id,
+                )
+
+        # 결정-진실 루프 B: 신규 OPEN 상태모순 드리프트 알림 (commit 후 dispatch).
+        if drift_alert:
+            try:
+                await notification_dispatcher.dispatch_discord_alert(db, project, drift_alert)
+            except Exception:
+                logger.exception(
+                    "Failed to dispatch drift alert for event %s", event_id,
                 )
     except Exception as exc:
         # I-2 fix: _process_inner 내부에서 예외 발생 시 세션이 poisoned 상태일 수 있음.
@@ -161,8 +170,11 @@ async def _process_inner(
     *,
     fetch_file: FetchFile,
     fetch_compare: FetchCompare,
-) -> tuple[PlanChanges | None, bool, bool]:
-    """Returns: (plan_changes, handoff_present, plan_changed) — process_event 의 알림 결정용."""
+) -> tuple[PlanChanges | None, bool, bool, str | None]:
+    """Returns: (plan_changes, handoff_present, plan_changed, drift_alert).
+
+    drift_alert: 이번 sync 로 신규 OPEN 된 B 드리프트 알림 content (없으면 None).
+    """
     changed_files = await _collect_changed_files(
         event, project, fetch_compare=fetch_compare
     )
@@ -175,7 +187,8 @@ async def _process_inner(
 
     if not plan_changed and not handoff_changed:
         logger.info("event %s: no PLAN/handoff in changed files — skip", event.id)
-        return plan_changes, handoff_present, plan_changed
+        # PLAN/handoff 무변경이면 B 재평가도 무의미 — drift_alert None.
+        return plan_changes, handoff_present, plan_changed, None
 
     pat = _decrypt_pat(project)
 
@@ -201,16 +214,19 @@ async def _process_inner(
 
     # 결정-진실 루프 B: handoff↔PLAN 상태 모순 감지 (저장된 Handoff.parsed_tasks 사용).
     # PLAN 또는 handoff 변경 시 항상 재평가. flush 만 — commit 은 process_event 가 담당.
+    # 신규 OPEN 드리프트는 알림 content 로 만들어 caller(process_event)가 commit 후 dispatch.
     from app.services import drift_service
+    drift_alert: str | None = None
     try:
-        await drift_service.detect_status_contradictions(
+        newly = await drift_service.detect_status_contradictions(
             db, project_id=project.id, branch=event.branch,
             commit_sha=event.head_commit_sha,
         )
+        drift_alert = drift_service.format_drift_alert(newly)
     except Exception:
         logger.exception("drift(B) detection failed for event %s", event.id)
 
-    return plan_changes, handoff_present, plan_changed
+    return plan_changes, handoff_present, plan_changed, drift_alert
 
 
 def _format_push_summary(
