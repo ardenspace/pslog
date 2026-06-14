@@ -223,3 +223,39 @@ abc1234
     assert s_new.free_notes.next == "내일"
     s_old = h.sections[1]
     assert s_old.free_notes.last_commit is None
+
+
+def test_parse_handoff_decisions_section():
+    text = """# Handoff: feat/x — @alice
+
+## 2026-06-14
+- [x] task-001
+
+### 결정
+- [task-001] 약관을 인라인 체크박스로 — 전환비용↓ → DECISIONS
+- [task-002] 캐시 TTL 5→15분 — 부하 감소
+"""
+    h = parse_handoff(text)
+    decisions = h.sections[0].decisions
+    assert len(decisions) == 2
+    assert decisions[0].external_id == "task-001"
+    assert decisions[0].promoted is True
+    assert "약관을 인라인" in decisions[0].text
+    assert decisions[1].external_id == "task-002"
+    assert decisions[1].promoted is False
+
+
+def test_parse_handoff_decisions_does_not_leak_into_checks():
+    """### 결정 아래 `- [task-NNN]` 라인이 최상위 checks 로 leak 되면 안 됨."""
+    text = """# Handoff: feat/x — @alice
+
+## 2026-06-14
+- [x] task-001
+
+### 결정
+- [task-002] 뭔가 바꿈 — 이유
+"""
+    h = parse_handoff(text)
+    ids = [c.external_id for c in h.sections[0].checks]
+    assert ids == ["task-001"]
+    assert "task-002" not in ids

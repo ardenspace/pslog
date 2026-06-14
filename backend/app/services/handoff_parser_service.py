@@ -16,6 +16,7 @@ import re
 
 from app.schemas.parsed_handoff import (
     CheckItem,
+    Decision,
     FreeNotes,
     HandoffSection,
     ParsedHandoff,
@@ -35,8 +36,13 @@ _FREE_NOTE_HEADERS = {
     "마지막 커밋": "last_commit",
     "다음": "next",
     "블로커": "blockers",
+    "결정": "decisions",
 }
 _FREE_NOTE_HEADER_RE = re.compile(r"^###\s+(?P<name>.+?)\s*$")
+_DECISION_LINE_RE = re.compile(
+    r"^-\s+(?:\[(?P<id>task-[A-Za-z0-9_-]+)\]\s+)?(?P<body>.+?)\s*$"
+)
+_PROMOTED_RE = re.compile(r"→\s*(DECISIONS|ADR(?:-[A-Za-z0-9_]+)?)\s*$")
 _TOP_CHECK_RE = re.compile(
     r"^-\s+\[(?P<check>[ xX])\]\s+(?P<id>task-[A-Za-z0-9_-]+)\s*(?P<extra>.*?)\s*$"
 )
@@ -45,7 +51,9 @@ _SUB_CHECK_RE = re.compile(
 )
 
 
-def _parse_section_body(body_lines: list[str]) -> tuple[list[CheckItem], list[Subtask], FreeNotes]:
+def _parse_section_body(
+    body_lines: list[str],
+) -> tuple[list[CheckItem], list[Subtask], FreeNotes, list[Decision]]:
     """한 날짜 섹션의 본문 라인들 → (checks, subtasks, free_notes).
 
     체크박스 / 서브태스크 는 첫 ### 헤더 등장 전까지 만 추출.
@@ -57,7 +65,9 @@ def _parse_section_body(body_lines: list[str]) -> tuple[list[CheckItem], list[Su
     subtasks: list[Subtask] = []
     last_top_id: str | None = None
 
-    free_notes_raw: dict[str, list[str]] = {"last_commit": [], "next": [], "blockers": []}
+    free_notes_raw: dict[str, list[str]] = {
+        "last_commit": [], "next": [], "blockers": [], "decisions": [],
+    }
     current_free_key: str | None = None
     # 첫 ### 헤더 등장 후 True — 체크박스 영역으로의 복귀 차단 (스펙: 체크박스는 ### 등장 전까지만).
     in_h3_zone = False
@@ -117,7 +127,25 @@ def _parse_section_body(body_lines: list[str]) -> tuple[list[CheckItem], list[Su
         next=_join(free_notes_raw["next"]),
         blockers=_join(free_notes_raw["blockers"]),
     )
-    return checks, subtasks, free_notes
+
+    decisions: list[Decision] = []
+    for raw in free_notes_raw["decisions"]:
+        line = raw.strip()
+        if not line.startswith("- "):
+            continue  # 주석(# ...) / 빈 줄 무시
+        m = _DECISION_LINE_RE.match(line)
+        if not m:
+            continue
+        body = m.group("body").strip()
+        promoted = bool(_PROMOTED_RE.search(body))
+        text_clean = _PROMOTED_RE.sub("", body).strip().rstrip("→").strip()
+        decisions.append(Decision(
+            external_id=m.group("id"),
+            text=text_clean,
+            promoted=promoted,
+        ))
+
+    return checks, subtasks, free_notes, decisions
 
 
 def parse_handoff(text: str) -> ParsedHandoff:
@@ -157,13 +185,14 @@ def parse_handoff(text: str) -> ParsedHandoff:
 
     sections = []
     for date, body in section_blocks:
-        checks, subtasks, free_notes = _parse_section_body(body)
+        checks, subtasks, free_notes, decisions = _parse_section_body(body)
         sections.append(
             HandoffSection(
                 date=date,
                 checks=checks,
                 subtasks=subtasks,
                 free_notes=free_notes,
+                decisions=decisions,
             )
         )
     sections.sort(key=lambda s: s.date, reverse=True)
