@@ -30,8 +30,8 @@ FIXTURE = (Path(__file__).parent / "fixtures" / "github_push_payload.json").read
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    """FORPS_FERNET_KEY + DB override 적용한 ASGI 클라이언트."""
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    """PSLOG_FERNET_KEY + DB override 적용한 ASGI 클라이언트."""
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -215,7 +215,7 @@ async def test_webhook_decrypt_failure_returns_500(
     import app.core.crypto
 
     # Step 1: encrypt 'real-secret' under master key A
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     importlib.reload(app.config)
     importlib.reload(app.core.crypto)
     from app.core.crypto import encrypt_secret as encrypt_a
@@ -233,7 +233,7 @@ async def test_webhook_decrypt_failure_returns_500(
     await async_session.commit()
 
     # Step 2: rotate master key to B, reload — old ciphertext now undecryptable
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     importlib.reload(app.config)
     importlib.reload(app.core.crypto)
 

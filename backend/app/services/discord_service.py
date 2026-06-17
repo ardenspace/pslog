@@ -77,7 +77,7 @@ async def build_project_summary(project_id: UUID, db: AsyncSession, sender_name:
 
     lines: list[str] = []
     sender_tag = f"[**{sender_name}**] " if sender_name else ""
-    lines.append(f"📊 {sender_tag}**forps 주간 리포트** ({date_from} ~ {date_to})")
+    lines.append(f"📊 {sender_tag}**pslog 주간 리포트** ({date_from} ~ {date_to})")
     lines.append("")
     lines.append(f"**[{project.name}]**")
 

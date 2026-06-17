@@ -6,7 +6,7 @@
 
 **Goal**: error-log spec Phase 4 — Phase 3 가 채운 ErrorGroup / LogEvent 데이터를 사용자에게 노출. 3 GET endpoint (errors 목록, errors 상세 + git 컨텍스트 join + 직전 정상 SHA, logs raw 조회 + pg_trgm 풀텍스트). UI 없이 curl 만으로도 검증 가능한 핵심 가치 단계.
 
-**선행**: forps `main` = `0f1cb10` (Error-log Phase 3 PR #17 머지 직후). backend tests 256 baseline. 마이그레이션 신규 없음 — Phase 1 alembic 의 모든 모델 + 인덱스 (`idx_log_message_trgm` partial pg_trgm 포함) 활용.
+**선행**: pslog `main` = `0f1cb10` (Error-log Phase 3 PR #17 머지 직후). backend tests 256 baseline. 마이그레이션 신규 없음 — Phase 1 alembic 의 모든 모델 + 인덱스 (`idx_log_message_trgm` partial pg_trgm 포함) 활용.
 
 ---
 
@@ -30,7 +30,7 @@
 - spike / regression 알림 — Phase 6 본편
 - 마이그레이션 / 모델 변경
 
-본 phase 머지 후 e2e 가능: app-chak logger.error → forps DB ingest + fingerprint + group → curl `GET /errors` 로 그룹 목록 / `GET /errors/{id}` 로 상세 + git 컨텍스트 / `GET /logs?q=...` 로 메시지 검색.
+본 phase 머지 후 e2e 가능: app-chak logger.error → pslog DB ingest + fingerprint + group → curl `GET /errors` 로 그룹 목록 / `GET /errors/{id}` 로 상세 + git 컨텍스트 / `GET /logs?q=...` 로 메시지 검색.
 
 ---
 
@@ -68,7 +68,7 @@ ORDER BY le.received_at DESC
 LIMIT 1
 ```
 
-`before_received_at` = `ErrorGroup.first_seen_at`. 결과 없으면 `None` (이 fingerprint 가 forps 가 받은 모든 로그의 가장 처음부터 있었음).
+`before_received_at` = `ErrorGroup.first_seen_at`. 결과 없으면 `None` (이 fingerprint 가 pslog 가 받은 모든 로그의 가장 처음부터 있었음).
 
 `environment` 도 일치 — 다른 환경의 SHA 는 무관.
 
@@ -718,7 +718,7 @@ api_v1_router.include_router(log_logs_router)
 
 ### 4.3. e2e (사용자, PR 머지 전)
 
-- forps dev server + Phase 3 의 ErrorGroup 데이터 (이전 dogfooding 시 쌓인 것 또는 의도적 logger.error)
+- pslog dev server + Phase 3 의 ErrorGroup 데이터 (이전 dogfooding 시 쌓인 것 또는 의도적 logger.error)
 - curl `GET /errors` — 목록 응답 구조 + total count
 - curl `GET /errors/{group_id}` — 상세 + git_context (handoff/task/push_event lookup) + previous_good_sha
 - curl `GET /logs?q=KeyError` — pg_trgm 풀텍스트 동작

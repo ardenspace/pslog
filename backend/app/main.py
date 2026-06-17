@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="forps API",
+    title="pslog API",
     description="B2B Task Management & Collaboration Tool",
     version="0.1.0",
     lifespan=lifespan,
@@ -80,7 +80,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "forps API is running"}
+    return {"message": "pslog API is running"}
 
 
 @app.head("/health")

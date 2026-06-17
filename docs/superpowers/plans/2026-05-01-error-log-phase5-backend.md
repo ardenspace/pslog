@@ -380,7 +380,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -671,7 +671,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -899,7 +899,7 @@ class LogHealthResponse(BaseModel):
     threshold_unknown_ratio: float = 0.05  # 설계서: > 5% 시 경고
 ```
 
-`dropped_count_total` 은 v1 에서 미지원 — `X-Forps-Dropped-Since-Last` 헤더 저장 인프라 미구현. 추후 PR 에서 추가.
+`dropped_count_total` 은 v1 에서 미지원 — `X-pslog-Dropped-Since-Last` 헤더 저장 인프라 미구현. 추후 PR 에서 추가.
 
 - [ ] **Step 2: 실패 테스트 — service 단위**
 
@@ -1129,7 +1129,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1397,7 +1397,7 @@ PR 머지 후:
 
 ```bash
 # parent 에서
-cd /Users/arden/Documents/ardensdevspace/forps
+cd /Users/arden/Documents/ardensdevspace/pslog
 git checkout main
 git pull --ff-only
 git worktree remove .worktrees/error-log-phase5-backend

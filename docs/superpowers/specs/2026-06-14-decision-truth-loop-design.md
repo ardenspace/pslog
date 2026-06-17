@@ -11,7 +11,7 @@
 
 ## 1. 배경 / 문제
 
-forps(이하 새 이름 **pslog**)는 추적 대상 repo의 `PLAN.md`(체크박스 task = source of truth) +
+pslog(이하 새 이름 **pslog**)는 추적 대상 repo의 `PLAN.md`(체크박스 task = source of truth) +
 `handoffs/{branch}.md`(브랜치별 작업 로그) + git push webhook 을 ingest 해
 태스크 대시보드와 Discord 알림을 만든다. `app-chak` 이 이 시스템의 첫 실사용처다.
 
@@ -95,7 +95,7 @@ pslog 코드 없이 즉시 가치. 계약(handoff 포맷)은 pslog 가 정의하
 3. **app-chak `.claude/skills/handoff-protocol/SKILL.md`**: 의식 추가 —
    "PR 열기 전, handoff `### 결정` 항목을 DECISIONS.md 로 승격(날짜+한 줄, 무거우면 docs/adr/ + 링크) 후 `→ DECISIONS` 마킹."
 4. **app-chak `CLAUDE.md` "pslog 연동 규칙"**: 위 의식을 작업 흐름에 박음(PR 단계).
-5. **app-chak `DECISIONS.md` 신규 생성**: app-chak 엔 현재 DECISIONS.md 가 **없다**(forps 엔 있음).
+5. **app-chak `DECISIONS.md` 신규 생성**: app-chak 엔 현재 DECISIONS.md 가 **없다**(pslog 엔 있음).
    Phase 1 에서 부트스트랩 — `목적` + 머리말("구현 중 결정도 여기로 승격. 무거운 건 ADR 링크") + 첫 결정 항목(루프 도입 자체).
 
 ### 4.3 의식 (Q3 합의 — 단계형)

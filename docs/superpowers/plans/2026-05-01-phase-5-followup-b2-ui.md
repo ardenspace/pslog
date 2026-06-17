@@ -9,10 +9,10 @@
 **Tech Stack:** FastAPI 0.115, SQLAlchemy 2.0 async, Pydantic v2, React 19 + TypeScript 5, TanStack Query, Tailwind, bun. backend tests: pytest + testcontainers PostgreSQL.
 
 **선행 조건:**
-- forps `main` = `cd53696` (B1 PR #13 머지 직후), alembic head = `a1b2c3d4e5f6`
+- pslog `main` = `cd53696` (B1 PR #13 머지 직후), alembic head = `a1b2c3d4e5f6`
 - backend tests baseline = **175 passing**
 - frontend `bun run build` + `bun run lint` clean
-- Python 3.12 venv (`backend/venv` symlink), `.env` 의 `FORPS_FERNET_KEY` 존재
+- Python 3.12 venv (`backend/venv` symlink), `.env` 의 `PSLOG_FERNET_KEY` 존재
 - spec: `docs/superpowers/specs/2026-05-01-phase-5-followup-b2-design.md`
 
 **중요한 계약:**
@@ -68,7 +68,7 @@
 - [ ] **Step 1: Baseline 회귀 — 175 tests pass 확인**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -697,7 +697,7 @@ async def test_discord_alert_called_on_failure_with_webhook_url(
     assert len(sent) == 1
     content, url = sent[0]
     assert url == "https://discord.com/api/webhooks/1/abc"
-    assert "forps sync 실패" in content
+    assert "pslog sync 실패" in content
     assert proj.name in content
     assert event.branch in content
     assert head[:7] in content
@@ -835,7 +835,7 @@ Expected: **첫 두 테스트 FAIL** (`assert 0 == 1` — fix 없이 send_webhoo
             from app.services import discord_service
             try:
                 content = (
-                    f"⚠️ **forps sync 실패** — {project.name}\n"
+                    f"⚠️ **pslog sync 실패** — {project.name}\n"
                     f"branch: `{event.branch}`\n"
                     f"commit: `{event.head_commit_sha[:7]}`\n"
                     f"error: ```{error_msg[:500]}```"
@@ -955,7 +955,7 @@ grep "GitEventSummary\|HandoffSummary" frontend/src/types/index.ts
 - [ ] **Step 2: TypeScript build 검증**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2/frontend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2/frontend
 bun run build 2>&1 | tail -10
 ```
 
@@ -979,7 +979,7 @@ Expected: 신규 위배 0 (Phase 5b 의 8 pre-existing 위배는 그대로 — o
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2
 git add frontend/src/types/task.ts frontend/src/types/git.ts frontend/src/types/index.ts frontend/src/services/api.ts
 git commit -m "$(cat <<'EOF'
 feat(b2/frontend): types + api.ts — Task.handoff_missing + GitEventSummary
@@ -1049,7 +1049,7 @@ Expected: build clean, lint 신규 위배 0.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2
 git add frontend/src/hooks/useGithubSettings.ts
 git commit -m "$(cat <<'EOF'
 feat(b2/frontend): useFailedGitEvents + useReprocessEvent invalidate
@@ -1108,7 +1108,7 @@ Expected: clean.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2
 git add frontend/src/components/board/TaskCard.tsx
 git commit -m "$(cat <<'EOF'
 feat(b2/frontend): TaskCard ⚠️ handoff missing 배지
@@ -1269,7 +1269,7 @@ Expected: clean. lint 가 `react-hooks/set-state-in-effect` 등 위배 잡으면
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2
 git add frontend/src/components/sidebar/GitEventListModal.tsx
 git commit -m "$(cat <<'EOF'
 feat(b2/frontend): GitEventListModal — failed events list + reprocess
@@ -1374,7 +1374,7 @@ Expected: clean. 신규 lint 위배 0.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2
 git add frontend/src/components/sidebar/ProjectItem.tsx
 git commit -m "$(cat <<'EOF'
 feat(b2/frontend): ProjectItem — sync 실패 count badge + 메뉴 항목 + 모달 mount
@@ -1396,7 +1396,7 @@ EOF
 - [ ] **Step 1: 전체 backend 회귀**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -1429,7 +1429,7 @@ Expected: build clean, lint 신규 위배 0 (Phase 5b 의 8 pre-existing 위배�
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+spec+plan): Phase 5 follow-up B2 완료 + Phase 6 다음 할 일`
+- pslog: `<sha> docs(handoff+spec+plan): Phase 5 follow-up B2 완료 + Phase 6 다음 할 일`
 - 브랜치 base: `cd53696` (main, B1 PR #13 머지 직후)
 
 ### 다음 (Phase 6 — Discord 알림 통합 본편)
@@ -1458,7 +1458,7 @@ Expected: build clean, lint 신규 위배 0 (Phase 5b 의 8 pre-existing 위배�
 - [ ] **Step 4: handoff + plan + spec commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-5-followup-b2
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-5-followup-b2
 git add handoffs/main.md docs/superpowers/plans/2026-05-01-phase-5-followup-b2-ui.md
 # spec 은 이미 별도 commit 됨 (fabc5a4) — 재 add 안 해도 됨
 git commit -m "$(cat <<'EOF'
@@ -1540,7 +1540,7 @@ EOF
 - `GitEventSummary` 필드 (id/branch/head_commit_sha/pusher/received_at/processed_at/error) backend ↔ frontend 동일.
 - API path: backend `GET /api/v1/projects/{id}/git-events` ↔ frontend `apiClient.get('/projects/${projectId}/git-events')` (apiClient base path 가 `/api/v1` 이라고 가정 — 기존 패턴).
 - Hook ↔ component: `useFailedGitEvents` returns `{data: GitEventSummary[]}`, modal 과 ProjectItem 모두 `data?.length` 사용 — 일관.
-- Discord alert content: spec 의 `⚠️ **forps sync 실패** — {project.name}` 포맷 ↔ Task 3 의 implementation ↔ Task 3 test 의 assertions (`"forps sync 실패" in content`, `proj.name in content`, `event.branch in content`, `head[:7] in content`, `"RuntimeError" in content`) — 일관.
+- Discord alert content: spec 의 `⚠️ **pslog sync 실패** — {project.name}` 포맷 ↔ Task 3 의 implementation ↔ Task 3 test 의 assertions (`"pslog sync 실패" in content`, `proj.name in content`, `event.branch in content`, `head[:7] in content`, `"RuntimeError" in content`) — 일관.
 
 **4. 의존 순서 검토**:
 - Task 1 (TaskResponse + annotate) 는 frontend Task 6 (TaskCard) 이 의존. Task 1 → Task 6 순.

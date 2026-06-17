@@ -30,7 +30,7 @@ def auth_headers(pat: str | None) -> dict[str, str]:
     # `httpx.Request(...) + client.send(request)` 사용 시 default User-Agent 자동 주입 안 됨 → 403.
     headers = {
         "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "forps/0.1.0",
+        "User-Agent": "pslog/0.1.0",
     }
     if pat:
         headers["Authorization"] = f"token {pat}"

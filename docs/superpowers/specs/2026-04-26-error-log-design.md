@@ -1,4 +1,4 @@
-# 에러 로그 + Git 상관관계 설계서 (forps)
+# 에러 로그 + Git 상관관계 설계서 (pslog)
 
 작성일: 2026-04-26
 선행: `2026-04-26-ai-task-automation-design.md` (Phase 4 이상 머지 완료 전제)
@@ -16,7 +16,7 @@
   - PostgreSQL 일별 파티션 + `DROP PARTITION` GC
   - ErrorGroup status 전이 ASCII 다이어그램
   - spike 알림 cooldown (`last_alerted_at` + 30분)
-  - 핸들러 forps 다운 시 정책 (큐 한도, backoff, atexit, drop 메트릭)
+  - 핸들러 pslog 다운 시 정책 (큐 한도, backoff, atexit, drop 메트릭)
   - 풀텍스트 검색을 §12에서 Phase 5로 이동 (`pg_trgm` 인덱스)
   - 핸들러 배포 방식 = app-chak 레포 직접 복사 (§14 결정)
 - **v3 (2026-04-27)**: 설계 검토 후 2개 결정 확정
@@ -27,14 +27,14 @@
 
 ## 1. 배경
 
-forps에 외부 프로젝트(예: `app-chak`)의 로그를 수집·조회하고, **에러를 git 작업 컨텍스트와 자동 연결**하는 기능을 추가한다. 시장의 일반 로그 도구(Sentry, Logtail, Datadog)와의 차별점:
+pslog에 외부 프로젝트(예: `app-chak`)의 로그를 수집·조회하고, **에러를 git 작업 컨텍스트와 자동 연결**하는 기능을 추가한다. 시장의 일반 로그 도구(Sentry, Logtail, Datadog)와의 차별점:
 
-- 본 시스템은 forps가 이미 보유한 **Handoff / Task / TaskEvent**와 로그를 동일 SHA로 join한다.
+- 본 시스템은 pslog가 이미 보유한 **Handoff / Task / TaskEvent**와 로그를 동일 SHA로 join한다.
 - 결과: *"이 NullPointerException은 commit `abc1234` (alice의 task-007: 로그인 폼 검증)에서 처음 발생"* 같은 인사이트를 자동으로 만들어낸다.
 
 **핵심 원칙:**
 1. **AI는 합성·요약에만 사용.** 에러 그룹화(fingerprint), 빈도 집계, 알림 라우팅은 결정적 코드로 처리한다.
-2. **단일 진실 — `version_sha`.** 로그 한 줄마다 배포 커밋 SHA가 박혀 들어와야 forps가 git 컨텍스트와 join할 수 있다. **이 값의 신뢰성이 본 시스템 가치의 90%를 결정한다.**
+2. **단일 진실 — `version_sha`.** 로그 한 줄마다 배포 커밋 SHA가 박혀 들어와야 pslog가 git 컨텍스트와 join할 수 있다. **이 값의 신뢰성이 본 시스템 가치의 90%를 결정한다.**
 3. **외부 의존 실패는 기능을 막지 않는다.** Discord/Gemma 다운 시에도 로그 수집/조회는 계속 작동한다.
 
 ---
@@ -42,14 +42,14 @@ forps에 외부 프로젝트(예: `app-chak`)의 로그를 수집·조회하고,
 ## 2. 사용자 시나리오
 
 ### 2.1 일상 — 에러 빈도 추이 + 메시지 검색
-1. 팀원이 forps `Logs` 페이지에서 프로젝트 선택
+1. 팀원이 pslog `Logs` 페이지에서 프로젝트 선택
 2. 기본 뷰: 최근 24시간 에러를 fingerprint로 그룹화한 목록 (빈도/마지막 발생 시각/관련 브랜치)
 3. 새 에러(처음 본 fingerprint)는 상단에 ⚡ 배지
 4. 검색창에 키워드 입력 → 메시지/스택 부분 일치 결과 즉시 (`pg_trgm` 인덱스)
 
 ### 2.2 사고 대응 — 어떤 작업이 에러를 만들었나
 1. Discord에 "🚨 새 에러: `KeyError: 'preference'`, 5분 내 12회" 알림 도착
-2. 팀원이 알림 링크 → forps `ErrorDetail` 화면
+2. 팀원이 알림 링크 → pslog `ErrorDetail` 화면
 3. 화면에 같이 표시되는 정보:
    - 첫 발생: `2026-04-26 14:32`, commit `abc1234`
    - 해당 commit: alice가 push한 `feature/preference-update` 브랜치, task-007 작업 중
@@ -58,7 +58,7 @@ forps에 외부 프로젝트(예: `app-chak`)의 로그를 수집·조회하고,
 4. 팀원이 1분 안에 원인 후보 좁힘
 
 ### 2.3 회고 — Gemma 요약 (선택)
-1. 주간 회고 시 forps가 "이번 주 신규 에러 N건, 가장 영향 큰 5건" Gemma 브리핑 생성
+1. 주간 회고 시 pslog가 "이번 주 신규 에러 N건, 가장 영향 큰 5건" Gemma 브리핑 생성
 
 ---
 
@@ -66,7 +66,7 @@ forps에 외부 프로젝트(예: `app-chak`)의 로그를 수집·조회하고,
 
 | 결정 | 선택 | 이유 |
 |---|---|---|
-| 로그 수집 방식 | **app-chak → forps HTTP push (Python logging handler)** | 인프라 추가 0, 표준 logging 위에 얹음, 클라우드/로컬 어디서 돌아도 동일 |
+| 로그 수집 방식 | **app-chak → pslog HTTP push (Python logging handler)** | 인프라 추가 0, 표준 logging 위에 얹음, 클라우드/로컬 어디서 돌아도 동일 |
 | Handler 구현 | **`logging.Handler` 서브클래스 + 배치 큐** | 표준 라이브러리 위에 얇게 얹기, Sentry SDK 의존 X |
 | Handler 배포 | **app-chak 레포에 단일 .py 모듈 복사** | 솔로/소규모 팀 단순함 우선, PyPI/submodule 인프라 비용 회피 |
 | 전송 단위 | **배치 (≥10건 또는 ≥2초)** | 트래픽 절감 + 실시간성 균형 |
@@ -99,7 +99,7 @@ version_sha: str                      # 앱 부팅 시 주입된 git SHA (40자 
 environment: str                      # "production" | "staging" | "dev"
 hostname: str                         # 발생 서버
 emitted_at: datetime                  # 앱이 로그 찍은 시각 (앱 시계)
-received_at: datetime                 # forps가 받은 시각 (forps 시계, 시계 어긋남 감지용)
+received_at: datetime                 # pslog가 받은 시각 (pslog 시계, 시계 어긋남 감지용)
 
 # 에러 전용 (level >= ERROR일 때만 채워짐)
 exception_class: str | None           # "KeyError"
@@ -264,7 +264,7 @@ LogEvent.version_sha
             └──► commits[*].message, commits[*].modified
 ```
 
-forps API `GET /api/v1/projects/{id}/errors/{group_id}` 응답에 위 join 결과를 immediately 포함.
+pslog API `GET /api/v1/projects/{id}/errors/{group_id}` 응답에 위 join 결과를 immediately 포함.
 
 `version_sha == "unknown"` 또는 join 결과 0인 LogEvent는 "git 동기화 데이터 없음" 마킹 — UI에서 별도 표시.
 
@@ -345,7 +345,7 @@ frontend/src/
 
 배포: **app-chak 레포에 직접 복사** (단일 모듈로 시작, 필요 시 패키지화).
 
-위치: `app-chak/backend/app/utils/forps_log_handler.py`
+위치: `app-chak/backend/app/utils/pslog_log_handler.py`
 
 ```python
 # logging.Handler 서브클래스, 표준 logging 위에 얹음
@@ -354,12 +354,12 @@ frontend/src/
 # - PIIFilter (별도 logging.Filter)
 ```
 
-**핸들러 동작 정책 (forps 다운/오프라인 시):**
+**핸들러 동작 정책 (pslog 다운/오프라인 시):**
 - in-memory 큐 한도: **1000 events 또는 5MB**, 초과 시 가장 오래된 것부터 drop + `dropped_count` 카운터 증가
 - HTTP 5xx/timeout: exponential backoff (1s → 5s → 30s → 5min, 이후 5min 유지)
 - atexit flush 타임아웃: **5초** (앱 종료를 막지 않음)
 - 디스크 임시 저장: **default off** (디스크 권한/용량 문제 회피, 옵션으로 켤 수 있게 인터페이스만 제공)
-- drop 발생 시 다음 성공 송신 페이로드의 헤더 `X-Forps-Dropped-Since-Last: <count>`에 누적 — forps `log_health_service`가 집계 후 UI 표시
+- drop 발생 시 다음 성공 송신 페이로드의 헤더 `X-pslog-Dropped-Since-Last: <count>`에 누적 — pslog `log_health_service`가 집계 후 UI 표시
 
 **Wire format (HTTP POST 페이로드):**
 
@@ -367,7 +367,7 @@ frontend/src/
 - `Authorization: Bearer <key_id>.<secret>`
 - `Content-Type: application/json`
 - `Content-Encoding: gzip`
-- `X-Forps-Dropped-Since-Last: <int>` (optional, drop 발생 시만)
+- `X-pslog-Dropped-Since-Last: <int>` (optional, drop 발생 시만)
 
 본문:
 
@@ -394,25 +394,25 @@ frontend/src/
 }
 ```
 
-필드 세만틱은 §4.1 `LogEvent` 모델과 1:1 (DB 컬럼명 = wire 키 이름). nullable 필드는 생략 가능. `emitted_at`은 ISO8601 UTC. `extra`는 자유 JSON, 최대 4KB (forps 측 검증).
+필드 세만틱은 §4.1 `LogEvent` 모델과 1:1 (DB 컬럼명 = wire 키 이름). nullable 필드는 생략 가능. `emitted_at`은 ISO8601 UTC. `extra`는 자유 JSON, 최대 4KB (pslog 측 검증).
 
 `logging.config.dictConfig`에 등록만 하면 자동 동작:
 
 ```python
 LOGGING = {
-    "filters": {"pii": {"()": "app.utils.forps_log_handler.PIIFilter"}},
+    "filters": {"pii": {"()": "app.utils.pslog_log_handler.PIIFilter"}},
     "handlers": {
-        "forps": {
-            "class": "app.utils.forps_log_handler.ForpsHandler",
-            "endpoint": os.environ["FORPS_LOG_ENDPOINT"],
-            "token": os.environ["FORPS_LOG_INGEST_TOKEN"],   # "<key_id>.<secret>"
+        "pslog": {
+            "class": "app.utils.pslog_log_handler.pslogHandler",
+            "endpoint": os.environ["PSLOG_LOG_ENDPOINT"],
+            "token": os.environ["PSLOG_LOG_INGEST_TOKEN"],   # "<key_id>.<secret>"
             "version_sha": os.environ.get("APP_VERSION_SHA", "unknown"),
             "environment": os.environ.get("APP_ENV", "production"),
             "level": "INFO",
             "filters": ["pii"],
         },
     },
-    "root": {"handlers": ["forps", "console"], "level": "INFO"},
+    "root": {"handlers": ["pslog", "console"], "level": "INFO"},
 }
 ```
 
@@ -427,14 +427,14 @@ React Native(프론트) 측은 별도 — Phase 8 이후.
 ```
 [app-chak] logger.error(...)
    ↓
-[forps_log_handler] PIIFilter → 배치 큐
+[pslog_log_handler] PIIFilter → 배치 큐
    │  ├── 큐 크기 ≥ 10 또는
    │  ├── 마지막 flush 후 ≥ 2초 또는
    │  └── 프로세스 종료 (atexit, 5초 타임아웃)
    ↓
 [HTTP POST] /api/v1/log-ingest (Bearer <key_id>.<secret>, gzip JSON)
    ↓
-[forps] log_ingest_service
+[pslog] log_ingest_service
    ├── 토큰 파싱: key_id . secret 분리
    ├── key_id로 LogIngestToken lookup → 없으면 즉시 401 (bcrypt 호출 X)
    ├── bcrypt.checkpw(secret, row.secret_hash) → 실패 시 401
@@ -445,7 +445,7 @@ React Native(프론트) 측은 별도 — Phase 8 이후.
    ├── 배치 INSERT (LogEvent N건, 단일 트랜잭션, fingerprint=NULL)
    └── 200 OK
    ↓
-[forps BackgroundTask] (level >= ERROR인 이벤트만)
+[pslog BackgroundTask] (level >= ERROR인 이벤트만)
    ├── fingerprint_service.compute(event)
    ├── error_group_service.upsert(fingerprint, event)
    │   ├── 신규 fingerprint → ErrorGroup INSERT, status=OPEN
@@ -470,7 +470,7 @@ React Native(프론트) 측은 별도 — Phase 8 이후.
 ```
 [UI] GET /api/v1/projects/{id}/errors/abc-group-id
    ↓
-[forps] log_query_service.get_group_detail
+[pslog] log_query_service.get_group_detail
    ├── ErrorGroup row 조회
    ├── 최근 N개 LogEvent (이 fingerprint)
    ├── version_sha 집합 추출 → 각 SHA에 대해:
@@ -497,7 +497,7 @@ React Native(프론트) 측은 별도 — Phase 8 이후.
 new fingerprint           → 조건: ErrorGroup.last_alerted_new_at IS NULL
                            → Discord: 🆕 새 에러 — {class}: {message}
                                       첫 발생: {commit_short} ({author}, {branch})
-                                      forps에서 보기: {url}
+                                      pslog에서 보기: {url}
                            → set last_alerted_new_at = now()
 
 frequency spike           → 조건: 5분 윈도우 N >= baseline × 3 AND
@@ -522,7 +522,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 
 ---
 
-## 7. 에러 처리 (forps 측)
+## 7. 에러 처리 (pslog 측)
 
 | 위치 | 케이스 | 대응 |
 |---|---|---|
@@ -536,7 +536,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 | Ingest | 페이로드 ≥ 5MB | 413, 클라이언트가 분할 책임 |
 | Health | unknown SHA 비율 > 5% (1h) | Discord 경고 + UI LogHealthBadge |
 | Health | emitted_at vs received_at 차이 > 1h | UI 시계 경고 (보정은 안 함) |
-| Health | drop_count 누적 (X-Forps-Dropped-Since-Last) | UI 표시 + Discord (1일 1회) |
+| Health | drop_count 누적 (X-pslog-Dropped-Since-Last) | UI 표시 + Discord (1일 1회) |
 | Fingerprint | stack_frames 비어있음 | `SHA1(exception_class + "|" + message 첫 줄)` 으로 fallback |
 | Fingerprint | 정규화 후 앱 frame 0개 (모두 framework) | 가용한 frame top 5로 정규화(스킵 무시) — 그룹화는 약하지만 ErrorGroup은 만들어짐 |
 | Fingerprint | 부팅 시 미처리 이벤트 | log_fingerprint_reaper가 회수 |
@@ -552,16 +552,16 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 **전체 원칙**
 - 수집은 **항상 받는다.** 처리/알림 실패가 원본 보존을 막지 않는다.
 - 토큰 검증은 timing-safe 비교 (`hmac.compare_digest` 또는 `bcrypt.checkpw`).
-- forps 자체 로그는 본 시스템에 넣지 **않는다** (재귀 폭발 방지).
+- pslog 자체 로그는 본 시스템에 넣지 **않는다** (재귀 폭발 방지).
 - `version_sha == "unknown"` 비율이 일정 기준 초과 시 운영자가 즉시 알게 가시화.
 
 ---
 
 ## 8. 보안 / 프라이버시
 
-- **토큰**: `<key_id>.<secret>` 포맷. key_id는 평문 lookup, secret은 bcrypt 해시 저장. 발급 시 1회만 평문 노출. 환경변수 `FORPS_LOG_INGEST_TOKEN`으로 app-chak에 주입.
+- **토큰**: `<key_id>.<secret>` 포맷. key_id는 평문 lookup, secret은 bcrypt 해시 저장. 발급 시 1회만 평문 노출. 환경변수 `PSLOG_LOG_INGEST_TOKEN`으로 app-chak에 주입.
 - **토큰 발급 권한**: 프로젝트 OWNER/MAINTAINER 권한자만 (`permission_service` 재활용). 멤버는 발급 불가.
-- **PII 마스킹**: app-chak 측 logging filter (`PIIFilter`)에서 password/token/email 패턴 마스킹. 송신 측 책임 (forps가 다시 마스킹하면 이중 처리 + 누락 위험). **단** forps 측 `log_ingest_service`는 의심 패턴(JWT 형태, 32자 hex, `password=`)을 휴리스틱 감지해 카운터 증가 + 일정 기준 초과 시 운영자에 경고 (마스킹은 안 함, 가시화만).
+- **PII 마스킹**: app-chak 측 logging filter (`PIIFilter`)에서 password/token/email 패턴 마스킹. 송신 측 책임 (pslog가 다시 마스킹하면 이중 처리 + 누락 위험). **단** pslog 측 `log_ingest_service`는 의심 패턴(JWT 형태, 32자 hex, `password=`)을 휴리스틱 감지해 카운터 증가 + 일정 기준 초과 시 운영자에 경고 (마스킹은 안 함, 가시화만).
 - **Rate limit**: 토큰별 분당 600건 (≈10 EPS) 기본. 초과 시 429. UI에서 한도 조정.
 - **조회 권한**: `permission_service` 재활용 — Project 멤버만 조회.
 - **Cloudflare Tunnel**: 기존 터널 그대로. ingest endpoint도 동일 경로로 노출.
@@ -572,7 +572,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 ## 9. 성능
 
 - **수집 처리량 가정**: 프로젝트 1개당 평균 1 EPS, 피크 50 EPS. PostgreSQL 단일 인스턴스로 여유.
-- **uvicorn workers**: forps는 `workers=1` 가정 (맥미니 단일 머신, 단일 프로세스). 다중 워커 필요 시 운영 문서 별도 — 본 설계는 rate limit만 정확하고(PostgreSQL), spike 감지는 워커별 메모리(false negative 허용).
+- **uvicorn workers**: pslog는 `workers=1` 가정 (맥미니 단일 머신, 단일 프로세스). 다중 워커 필요 시 운영 문서 별도 — 본 설계는 rate limit만 정확하고(PostgreSQL), spike 감지는 워커별 메모리(false negative 허용).
 - **인덱스 비용**: `idx_log_project_level_received` 가 핵심 hot path. `idx_log_version_sha` 는 join용 필수. `idx_log_message_trgm`은 부분 인덱스(`level >= WARNING`)로 디스크 절감.
 - **배치 INSERT**: 단일 트랜잭션으로 N건. `INSERT ... VALUES (...), (...), ...`.
 - **ErrorGroup UPSERT**: PostgreSQL `INSERT ... ON CONFLICT (project_id, fingerprint) DO UPDATE` 단일 쿼리.
@@ -622,22 +622,22 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
   - `fingerprinted_at IS NULL`인 LogEvent를 만들고 reaper 실행 → 처리 + ErrorGroup 갱신 확인
   - 처리 중 크래시 시뮬레이션 → 다음 부팅에서 재처리 확인 **(CRITICAL)**
 
-### 10.3 E2E (forps + 가짜 app-chak)
-- 가짜 클라이언트가 1000건 배치 push → forps에서 ErrorGroup N개로 정확히 그룹화
-- 동일 commit_sha의 LogEvent 발생 → forps git_context_panel에 Handoff/Task 자동 표출
-- forps 일시 다운 → 핸들러 큐 보존 → forps 복구 후 재송신, drop_count 헤더 정확
+### 10.3 E2E (pslog + 가짜 app-chak)
+- 가짜 클라이언트가 1000건 배치 push → pslog에서 ErrorGroup N개로 정확히 그룹화
+- 동일 commit_sha의 LogEvent 발생 → pslog git_context_panel에 Handoff/Task 자동 표출
+- pslog 일시 다운 → 핸들러 큐 보존 → pslog 복구 후 재송신, drop_count 헤더 정확
 
 ### 10.4 마이그레이션 회귀 테스트
-- 본 설계는 기존 forps 모델을 **건드리지 않음** — Project/Task 컬럼 추가 없음. 신규 테이블만.
+- 본 설계는 기존 pslog 모델을 **건드리지 않음** — Project/Task 컬럼 추가 없음. 신규 테이블만.
 - 그래도 alembic up/down 정상 검증.
 - 파티션 자동 생성 (pg_partman 또는 수동 cron) 정상 동작 확인.
 
 ### 10.5 Handler 라이브러리 테스트 (app-chak 측)
-- `forps_log_handler`:
+- `pslog_log_handler`:
   - flush 트리거: 크기 ≥ 10건, 시간 ≥ 2초, atexit 5초 타임아웃
   - HTTP 5xx/timeout 시 backoff (1s/5s/30s/5min)
   - 큐 한도 초과 시 가장 오래된 것부터 drop, drop_count 정확
-  - forps 다운 → 큐 보존 → 복구 → 다음 송신에 `X-Forps-Dropped-Since-Last` 헤더 정확
+  - pslog 다운 → 큐 보존 → 복구 → 다음 송신에 `X-pslog-Dropped-Since-Last` 헤더 정확
   - gzip 압축 검증
 - `PIIFilter`: 이메일/JWT/password 키 패턴 마스킹
 
@@ -660,13 +660,13 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 선행 조건: `2026-04-26-ai-task-automation-design.md` Phase 4 머지 완료. 이유: `version_sha` join에 Handoff/Task의 commit_sha가 필요. **"안정화"의 정의**: Phase 4 회귀 테스트 모두 그린 + 1주 운영 무중단.
 
 **Phase 0 — Handler 라이브러리 + app-chak 준비 (병렬 가능)**
-- `forps_log_handler.py` 단일 모듈 작성 (app-chak 레포 `backend/app/utils/`에 직접 복사)
+- `pslog_log_handler.py` 단일 모듈 작성 (app-chak 레포 `backend/app/utils/`에 직접 복사)
 - `PIIFilter` 패턴 셋 정의 (app-chak 코드 보고 결정 — 이메일/JWT/password/Bearer)
 - app-chak에 환경변수 `APP_VERSION_SHA` 주입 메커니즘 구축 (Docker build arg = `git rev-parse HEAD` **40자 full**, short SHA 금지)
 - app-chak에 환경변수 `APP_PROJECT_ROOT` 주입 (fingerprint 절대경로→상대경로 정규화에 사용)
 - app-chak Python logging 설정에 핸들러 등록 (Phase 2 후 활성화)
 
-**Phase 1 — 모델/마이그레이션 (forps)**
+**Phase 1 — 모델/마이그레이션 (pslog)**
 - LogEvent (일별 파티션) / ErrorGroup / LogIngestToken / RateLimitWindow 테이블
 - 인덱스 5종 (trgm 포함)
 - pg_partman 설치 또는 수동 파티션 cron
@@ -724,7 +724,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 - **다중 환경 분리 보존 정책** (production 90일 / staging 7일): 환경 무관 단일 정책으로 시작.
 - **알림 채널 라우팅 룰**: 모든 에러는 프로젝트의 Discord webhook으로 직진. Slack/이메일/PagerDuty는 후속.
 - **자동 issue 생성** (GitHub Issue 자동 작성): 후속.
-- **에러 → forps Task 자동 생성**: 후속. 처음엔 사용자가 수동으로 ErrorGroup을 보고 Task 만듦.
+- **에러 → pslog Task 자동 생성**: 후속. 처음엔 사용자가 수동으로 ErrorGroup을 보고 Task 만듦.
 - **다중 워커 환경 정확한 spike 감지**: workers=1 가정. 다중 워커 필요 시 Redis 도입 별도 검토.
 - **`ErrorGroupEvent` 감사 로그 테이블**: status 전이 이력 별도 추적은 본 설계 v1에 미포함, 후속.
 
@@ -754,7 +754,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 - 2026-04-26: fingerprint = exception_class + 정규화 stack frame top 5 SHA1
 - 2026-04-26: 알림 = 기존 discord_service 재활용 (별도 채널 X)
 - 2026-04-26: ErrorGroup status 4종 (OPEN/RESOLVED/IGNORED/REGRESSED), regression 자동 감지
-- 2026-04-26: forps 자체 로그는 본 시스템에 넣지 않음 (재귀 방지)
+- 2026-04-26: pslog 자체 로그는 본 시스템에 넣지 않음 (재귀 방지)
 - 2026-04-26: PII 마스킹은 송신 측(app-chak) 책임, 수신 측은 의심 패턴 가시화만
 - 2026-04-26: AI는 주간 회고에만 (Gemma 4), fingerprint/집계는 결정적
 - 2026-04-26 (Rev2): **Phase 2의 fingerprint 처리는 BackgroundTask + 부팅 reaper** — `LogEvent.fingerprinted_at` 컬럼 + `idx_log_unfingerprinted`로 회귀 처리. eventual consistency 명시.
@@ -764,7 +764,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 - 2026-04-26 (Rev2): **PostgreSQL 일별 range partition + `DROP PARTITION` GC** — DELETE vacuum bloat 회피.
 - 2026-04-26 (Rev2): **ErrorGroup status 전이 ASCII 다이어그램 §4.1에 명시** — 모든 엣지(REGRESSED→RESOLVED 등) 정의.
 - 2026-04-26 (Rev2): **알림 cooldown** — `last_alerted_new_at` (1회만), `last_alerted_spike_at` (30분), `last_alerted_regression_at` (사이클당 1회).
-- 2026-04-26 (Rev2): **핸들러 forps 다운 정책** — 큐 1000건/5MB, backoff 1s→5s→30s→5min, atexit 5초 타임아웃, drop_count 헤더 보고.
+- 2026-04-26 (Rev2): **핸들러 pslog 다운 정책** — 큐 1000건/5MB, backoff 1s→5s→30s→5min, atexit 5초 타임아웃, drop_count 헤더 보고.
 - 2026-04-26 (Rev2): **풀텍스트 검색 `pg_trgm` Phase 5에 포함** — 비범위에서 빼고 핵심 기능으로 격상. WARNING↑만 인덱싱.
 - 2026-04-26 (Rev2): **handler 배포 = app-chak 레포 직접 복사** — Open Q에서 Decision으로 승격. PyPI/submodule 인프라 회피.
 - 2026-04-26 (Rev2): **토큰 발급 권한 = OWNER/MAINTAINER만** — 멤버는 발급 불가, permission_service 재활용.

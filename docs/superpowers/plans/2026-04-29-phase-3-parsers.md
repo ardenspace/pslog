@@ -9,7 +9,7 @@
 **Tech Stack:** Python 3.12, Pydantic v2 (스키마), 표준 `re` 모듈 (정규식), pytest 8.3 + testcontainers (DB 무관 — Phase 3 테스트는 testcontainers 미사용). 외부 의존 추가 없음.
 
 **선행 조건:**
-- forps main, alembic head = `c4dee7f06004` (Phase 1 머지) + Phase 2 webhook 머지 (PR #8) 완료
+- pslog main, alembic head = `c4dee7f06004` (Phase 1 머지) + Phase 2 webhook 머지 (PR #8) 완료
 - Python 3.12.13 venv (`backend/venv`), `requirements.txt` 핀 유지 — 신규 패키지 없음
 - 설계서: `docs/superpowers/specs/2026-04-26-ai-task-automation-design.md` §6, §10.1, §8 (파서 에러 케이스)
 
@@ -81,7 +81,7 @@
 - [ ] **Step 1: feature/phase-3-parsers 브랜치 생성**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps
+cd /Users/arden/Documents/ardensdevspace/pslog
 git checkout main && git pull --ff-only origin main
 git checkout -b feature/phase-3-parsers
 ```
@@ -154,7 +154,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CheckItem(BaseModel):
-    """들여쓰기 0 — handoff 섹션의 최상위 체크박스. forps DB 의 Task 상태에 영향."""
+    """들여쓰기 0 — handoff 섹션의 최상위 체크박스. pslog DB 의 Task 상태에 영향."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -164,7 +164,7 @@ class CheckItem(BaseModel):
 
 
 class Subtask(BaseModel):
-    """들여쓰기 ≥ 2 — 직전 최상위 체크박스의 자식. forps DB 미반영, free_notes 보존만."""
+    """들여쓰기 ≥ 2 — 직전 최상위 체크박스의 자식. pslog DB 미반영, free_notes 보존만."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -207,7 +207,7 @@ class ParsedHandoff(BaseModel):
 - [ ] **Step 3: import smoke test**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/backend
 source venv/bin/activate
 python -c "from app.schemas.parsed_plan import ParsedPlan, ParsedTask; from app.schemas.parsed_handoff import ParsedHandoff, HandoffSection, CheckItem, Subtask, FreeNotes; print('OK')"
 ```
@@ -245,7 +245,7 @@ Create `backend/tests/fixtures/plan_sample.md`:
 
 ## 노트
 
-- 이 영역은 forps 가 무시해야 함
+- 이 영역은 pslog 가 무시해야 함
 - [ ] [task-999] 노트 안의 체크박스도 파싱하면 안 됨
 ```
 
@@ -308,7 +308,7 @@ def test_parse_plan_ignores_note_section():
 - [ ] **Step 3: Run test — 실패 확인**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/backend
 pytest tests/test_plan_parser_service.py -v
 ```
 
@@ -1225,7 +1225,7 @@ git commit -m "feat(phase3): handoff_parser — 자유 영역 (마지막 커밋/
 - [ ] **Step 1: 전체 테스트 회귀**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/backend
 source venv/bin/activate
 pytest -v --tb=short
 ```
@@ -1272,7 +1272,7 @@ Expected: Phase 1 (41) + Phase 2 (32) + Phase 3 신규 (≥ 22) 모두 pass. Pha
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff): Phase 3 완료 + Phase 4 다음 할 일` (브랜치 `feature/phase-3-parsers`)
+- pslog: `<sha> docs(handoff): Phase 3 완료 + Phase 4 다음 할 일` (브랜치 `feature/phase-3-parsers`)
 - 브랜치 base: `c3a2817` (main, Phase 2 머지 직후)
 - 머지 전 PR 생성 + 사용자 검토 단계
 

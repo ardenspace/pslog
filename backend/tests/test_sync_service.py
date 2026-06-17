@@ -1024,7 +1024,7 @@ async def test_discord_alert_called_on_failure_with_webhook_url(
     assert len(sent) == 1
     content, url = sent[0]
     assert url == "https://discord.com/api/webhooks/1/abc"
-    assert "forps sync 실패" in content
+    assert "pslog sync 실패" in content
     assert proj.name in content
     assert event.branch in content
     assert head[:7] in content
@@ -1398,7 +1398,7 @@ async def test_no_meaningful_plan_changes_no_handoff_missing_alert(
     """PLAN.md 가 changed_files 에 있지만 의미적 변화 0건이면 누락 알림 안 뜸.
 
     실제 시나리오: feat 브랜치에서 이미 처리된 상태가 dev 등 통합 브랜치로 PR 머지될 때.
-    forps DB 의 task 가 PLAN 상태와 동일 → _apply_plan 변화 0건 → has_changes()=False.
+    pslog DB 의 task 가 PLAN 상태와 동일 → _apply_plan 변화 0건 → has_changes()=False.
     """
     proj = await _seed_project(async_session)
     proj.discord_webhook_url = "https://discord.com/api/webhooks/1/abc"
@@ -1412,7 +1412,7 @@ async def test_no_meaningful_plan_changes_no_handoff_missing_alert(
         commits=[{"id": head, "modified": ["PLAN.md"], "added": []}],
     )
 
-    # PLAN 에 task 1건 — 신규도 아니고 (forps DB 비어있음) checked 도 unchecked 도 아님.
+    # PLAN 에 task 1건 — 신규도 아니고 (pslog DB 비어있음) checked 도 unchecked 도 아님.
     # _apply_plan 신규 INSERT 동작 시 PlanChanges 가 변화로 잡지만, plan_text 가 비어있으면
     # archived 도 없고 changes 0. 가장 단순한 시나리오는 빈 PLAN.
     plan_text = "## 태스크\n\n"

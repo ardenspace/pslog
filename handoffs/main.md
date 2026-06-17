@@ -54,7 +54,7 @@
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Error-log Phase 4 완료 + Phase 5/6 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Error-log Phase 4 완료 + Phase 5/6 다음 할 일`
 - 브랜치 base: `0f1cb10` (main, Error-log Phase 3 PR #17 머지 직후)
 
 ### 다음 (Phase 5 — UI)
@@ -109,7 +109,7 @@
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Error-log Phase 3 완료 + Phase 4 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Error-log Phase 3 완료 + Phase 4 다음 할 일`
 - 브랜치 base: `90cce78` (main, Error-log Phase 2a PR #16 머지 직후)
 
 ### 다음 (Error-log Phase 4 — 조회 API + Git 컨텍스트 join)
@@ -153,11 +153,11 @@
   - [x] **deviation 1 (722928e)**: `validate_event` 가 `emitted_at.replace(tzinfo=None)` 로 tz strip — Pydantic 이 `"...Z"` 를 tz-aware 로 파싱하지만 DB 컬럼이 TIMESTAMP WITHOUT TIME ZONE. real bug fix, validate_event 레벨 (모든 caller 자동 적용).
   - [x] **deviation 2 (722928e)**: `ingest_batch` 도 `token.last_used_at = now` set — verify_token 도 set 하므로 production path 에서 중복. 단순 in-memory overwrite, harmless. 테스트가 verify_token bypass 할 때도 통과.
   - [x] **마이그레이션 신규 없음** — Phase 1 alembic 이 모든 컬럼 (`LogIngestToken / RateLimitWindow / LogEvent + rate_limit_per_minute`) 이미 포함.
-  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`FORPS_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
+  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`PSLOG_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Error-log Phase 2a 완료 + Phase 2b/3 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Error-log Phase 2a 완료 + Phase 2b/3 다음 할 일`
 - 브랜치 base: `7e51c20` (main, Phase 6 PR #15 머지 직후)
 
 ### 다음 (Error-log Phase 2b / Phase 3)
@@ -201,7 +201,7 @@
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Phase 6 완료 + Phase 7 (선택) 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Phase 6 완료 + Phase 7 (선택) 다음 할 일`
 - 브랜치 base: `29c7db7` (main, B2 PR #14 머지 직후)
 
 ### 다음 (Phase 7 — Gemma 브리핑, 선택) 또는 error-log spec
@@ -239,7 +239,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Phase 5 follow-up B2 완료 + Phase 6 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Phase 5 follow-up B2 완료 + Phase 6 다음 할 일`
 - 브랜치 base: `cd53696` (main, B1 PR #13 머지 직후)
 
 ### 다음 (Phase 6 — Discord 알림 통합 본편)
@@ -280,7 +280,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff): Phase 5 follow-up B1 완료 + B2/Phase 6 다음 할 일`
+- pslog: `<sha> docs(handoff): Phase 5 follow-up B1 완료 + B2/Phase 6 다음 할 일`
 - 브랜치 base: `27e8b56` (main, Makefile chore 직후)
 
 ### 다음 (B2 — Phase 5b UI 후속 / 그 후 Phase 6)
@@ -330,7 +330,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff): Phase 5b 완료 + Phase 6 다음 할 일`
+- pslog: `<sha> docs(handoff): Phase 5b 완료 + Phase 6 다음 할 일`
 - 브랜치 base: `900fa20` (main, Phase 5a 머지 직후)
 
 ### 다음 (Phase 6 — Discord 알림 통합 또는 Phase 5 follow-up)
@@ -375,12 +375,12 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
   - [x] `POST /api/v1/projects/{id}/git-settings/webhook` (OWNER) — `github_hook_service.list_hooks/create_hook/update_hook` (admin:repo_hook 권한 사용). 같은 callback url 의 hook 매칭 시 PATCH (secret rotate), 없으면 POST. URL 매칭은 lowercase + trailing `/` strip (I-3 fix). `_raise_for_status` 가 Authorization 헤더 sanitize (I-1 fix — PAT exc.request.headers leak 차단).
   - [x] `GET /api/v1/projects/{id}/handoffs?branch=...&limit=...` (멤버) — pushed_at desc, raw_content 제외, limit clamp 1~200.
   - [x] `POST /api/v1/projects/{id}/git-events/{event_id}/reprocess` (OWNER) — 처리 실패 이벤트 reset + Phase 4 의 `_run_sync_in_new_session` BackgroundTask 재호출.
-  - [x] `forps_public_url` settings + `.env` (기본값 `http://localhost:8000` — prod 는 Cloudflare Tunnel URL).
+  - [x] `pslog_public_url` settings + `.env` (기본값 `http://localhost:8000` — prod 는 Cloudflare Tunnel URL).
   - [x] code review (opus) APPROVED — fixed I-1/I-3/I-5 + missing 404 tests. **169 tests passing** (Phase 1+2+3+4 137 + Phase 5a 32).
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff): Phase 5a 완료 + Phase 5b 다음 할 일`
+- pslog: `<sha> docs(handoff): Phase 5a 완료 + Phase 5b 다음 할 일`
 - 브랜치 base: `44590c6` (main, Phase 4 머지 직후)
 
 ### 다음 (Phase 5b — Frontend UI)
@@ -398,7 +398,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 메모 (2026-04-30 Phase 5a 추가)
 
-- **`forps_public_url` 기본값 localhost**: prod 배포 시 Cloudflare Tunnel URL 로 환경변수 override 필수. 자동 webhook 등록이 localhost 로 callback 등록하면 GitHub 이 호출 못 함 — 수동 e2e 검증 시 주의.
+- **`pslog_public_url` 기본값 localhost**: prod 배포 시 Cloudflare Tunnel URL 로 환경변수 override 필수. 자동 webhook 등록이 localhost 로 callback 등록하면 GitHub 이 호출 못 함 — 수동 e2e 검증 시 주의.
 - **PAT 권한 범위**: GitHub PAT 는 `admin:repo_hook` 스코프 필요 (자동 webhook 등록용). Phase 5b ProjectGitSettings UI 에 도움말 텍스트 필수.
 - **webhook 자동 등록 = secret rotate**: 매 호출마다 새 secret 생성. 기존 hook 있으면 PATCH 로 secret 갱신 — UI 에서 "재등록" 버튼이 사실상 "secret rotate" 효과 임을 명시.
 - **Vanity revision id `a1b2c3d4e5f6`**: 수동 작성 SHA. autogen 의 random hex 와 다른 패턴이지만 chain 정상 (`down_revision = '274c0ed55105'`). 후속 마이그레이션은 다시 autogen 으로.
@@ -426,7 +426,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff): Phase 4 완료 + Phase 5 다음 할 일` (브랜치 `feature/phase-4-sync-service`)
+- pslog: `<sha> docs(handoff): Phase 4 완료 + Phase 5 다음 할 일` (브랜치 `feature/phase-4-sync-service`)
 - 브랜치 base: `3525a21` (main, Phase 3 머지 직후)
 - 머지 전 PR 생성 + 사용자 검토 단계
 
@@ -450,7 +450,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 - **BackgroundTask vs reaper**: webhook endpoint 가 BackgroundTask 로 sync 시작 → 정상 흐름. 컨테이너 재시작 시 in-flight 손실 → reaper 가 5분 grace 후 회수. **reaper 가 sync_service.process_event 를 callback 으로 받음 — 같은 코드 경로**. processed_at 가드로 idempotent.
 - **error 정책 (자동 재시도 안 함)**: sync 실패 시 `event.error` 기록 + `processed_at = now()`. 사용자 수동 재처리 endpoint 는 Phase 5. 그동안 reaper 는 `processed_at IS NULL` 만 픽업 — 자동 무한 retry 회피.
 - **poisoned session 패턴**: `_apply_plan` 안에서 IntegrityError 가 나면 SQLAlchemy 가 session 을 rollback-required 상태로 마킹. 그 위에서 `event.error` 세팅 후 commit 시도 → `PendingRollbackError`. 해결: rollback → `autoflush=False` → event mutate → commit. autoflush 잠금은 commit 직전 stale state 자동 flush 회피용.
-- **un-archive 정책**: spec §4.1 은 archived → re-add 케이스 명시 안 함. forps 에서는 history 보존 (TaskEvent / Comment / assignee) 위해 같은 row 의 `archived_at = None` 으로 처리. 재 INSERT 안 함. partial UNIQUE `(project_id, external_id) WHERE external_id IS NOT NULL` 가 자동으로 catch 했음 — 이걸 발견해 정책 명문화.
+- **un-archive 정책**: spec §4.1 은 archived → re-add 케이스 명시 안 함. pslog 에서는 history 보존 (TaskEvent / Comment / assignee) 위해 같은 row 의 `archived_at = None` 으로 처리. 재 INSERT 안 함. partial UNIQUE `(project_id, external_id) WHERE external_id IS NOT NULL` 가 자동으로 catch 했음 — 이걸 발견해 정책 명문화.
 - **plan_parser title 파싱 변경**: `_TITLE_DELIMITER_RE = re.compile(r" — (?=@|\`)")` lookahead. title 안에 단독 ` — ` 또는 백틱 가능. assignee/path 는 delimiter 이후 영역에서만 검색. Phase 3 spec 의 §6.1 라인 형식과 호환 유지 — 13 기존 테스트 무회귀.
 - **Handoff `parsed_tasks` 형식**: `[{external_id, checked, extra}]` (sections[0] 만). `free_notes = {last_commit, next, blockers, subtasks: [{parent_external_id, checked, text}]}`. 다중 날짜 history 는 `raw_content` 에 보존 — Phase 7 brief_service 가 활용.
 - **Handoff UNIQUE conflict 테스트 deviation**: 원안의 "다른 GitPushEvent + 같은 head_sha" 케이스가 Phase 1 의 `uq_git_push_project_head` UNIQUE 에 막힘. 대신 Handoff row 를 미리 seed 하고 process_event 가 SAVEPOINT silent skip 하는지 직접 검증 — 더 직접적.
@@ -471,7 +471,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff): Phase 3 완료 + Phase 4 다음 할 일` (브랜치 `feature/phase-3-parsers`)
+- pslog: `<sha> docs(handoff): Phase 3 완료 + Phase 4 다음 할 일` (브랜치 `feature/phase-3-parsers`)
 - 브랜치 base: `c3a2817` (main, Phase 2 머지 직후)
 - 머지 전 PR 생성 + 사용자 검토 단계
 
@@ -503,7 +503,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 ## 2026-04-29
 
 - [x] **Phase 2 완료** — webhook 수신 endpoint + 서명 검증 + reaper (브랜치 `feature/phase-2-webhook-receive`)
-  - [x] Fernet 마스터 키 (`FORPS_FERNET_KEY`) + `app/core/crypto.py` (encrypt_secret / decrypt_secret / generate_webhook_secret)
+  - [x] Fernet 마스터 키 (`PSLOG_FERNET_KEY`) + `app/core/crypto.py` (encrypt_secret / decrypt_secret / generate_webhook_secret)
   - [x] `cryptography==44.0.0` 의존성 핀
   - [x] `GitHubPushPayload` Pydantic 스키마 (6 nested models, `extra="ignore"`, `branch` property, `to_commits_json()`)
   - [x] github_webhook_service: HMAC-SHA256 (constant-time) + repo URL 정규화 매칭 (.git/trailing-slash/case 흡수) + GitPushEvent INSERT (UNIQUE 충돌 SAVEPOINT silent skip)
@@ -517,7 +517,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `6ed9053 feat(phase2): startup hook — reaper 1회 호출 (DB 실패 시 부팅 진행)` (브랜치 `feature/phase-2-webhook-receive`)
+- pslog: `6ed9053 feat(phase2): startup hook — reaper 1회 호출 (DB 실패 시 부팅 진행)` (브랜치 `feature/phase-2-webhook-receive`)
 - 브랜치 base: `e1aa4f1` (main, Phase 1 머지 직후)
 - 머지 전 PR 생성 + 사용자 검토 단계
 
@@ -536,7 +536,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 ### 메모 (2026-04-29 추가)
 
 - **`record_push_event` SAVEPOINT 패턴**: UNIQUE 충돌 시 plan 의 flat rollback 대신 `async with db.begin_nested()` 채택. 이유: 테스트의 함수-스코프 `async_session` 이 외부 ORM 객체(`proj` 등)를 보존해야 함. flat rollback 시 `MissingGreenlet` 발생. 프로덕션은 `Depends(get_db)` 가 요청별 fresh 세션이라 둘 다 정상이지만 SAVEPOINT 가 더 일반적이고 안전함.
-- **Fernet 키 회전 운영 절차 미정**: `FORPS_FERNET_KEY` 회전 시 모든 `webhook_secret_encrypted` 가 복호화 불가 → 운영 문서 별도 작성 필요. 첫 프로덕션 배포 전 잠금.
+- **Fernet 키 회전 운영 절차 미정**: `PSLOG_FERNET_KEY` 회전 시 모든 `webhook_secret_encrypted` 가 복호화 불가 → 운영 문서 별도 작성 필요. 첫 프로덕션 배포 전 잠금.
 - **`InvalidToken` 핸들러**: 현재 endpoint 가 `cryptography` 직접 import. Phase 4 sync_service 진입 시 service 레이어로 wrapper 옮길지 검토 (router 가 외부 라이브러리에 직접 의존하지 않게).
 - **알림 정책**: Phase 2 는 webhook 수신만. unknown repo 200 ACK 는 GitHub 재전송 방지 의도 — 운영 시 unknown repo 가 빈번하면 webhook 등록 실수 의심. log 모니터링 기준 추가 필요.
 - **alembic + python logging 함정**: `alembic.ini` 의 `[loggers]` 섹션은 `disable_existing_loggers=True` 기본값 — `app.*` 로거 silent disable. 본 phase 에서 conftest 회피 추가. 후속 plan 작성 시 logging 단위 테스트는 이 패턴 주의.
@@ -545,7 +545,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ## 2026-04-28
 
-- [x] **Phase 1 완료** — forps 본체 alembic 마이그레이션 + pytest 인프라 (브랜치 `feature/phase-1-models-migrations`)
+- [x] **Phase 1 완료** — pslog 본체 alembic 마이그레이션 + pytest 인프라 (브랜치 `feature/phase-1-models-migrations`)
   - [x] 테스트 인프라: pytest 8.3.4 + pytest-asyncio + testcontainers[postgres] (Docker로 PG 16 띄움) + psycopg, async DB fixture, 격리 패턴 (function-scope CREATE/DROP per-test DB)
   - [x] enum 확장: TaskSource, LogLevel, ErrorGroupStatus, TaskEventAction +4값 (모두 대문자 NAME 박힘 — SQLAlchemy 기본 + 기존 `taskstatus` 패턴 일관)
   - [x] Project +6 필드 (git_repo_url, git_default_branch, plan_path, handoff_dir, last_synced_commit_sha, webhook_secret_encrypted) + CHECK 40자 hex on last_synced_commit_sha
@@ -560,7 +560,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 ### 마지막 커밋
 
-- forps: `27352db test+fix(phase1): final review fixups (test_partitioning, env.py imports, ORM round-trip)` (브랜치 `feature/phase-1-models-migrations`)
+- pslog: `27352db test+fix(phase1): final review fixups (test_partitioning, env.py imports, ORM round-trip)` (브랜치 `feature/phase-1-models-migrations`)
 - 브랜치 base: `2d374e9 chore: .worktrees/ 디렉토리 ignore` (main)
 - 머지 전 PR 생성 + 사용자 검토 단계
 
@@ -582,35 +582,35 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 - **enum 케이스 결정**: SQLAlchemy 2.0 + `class Foo(str, enum.Enum): MANUAL = "manual"` 매핑은 DB에 enum **NAME** (대문자) 박음. value 아님. 기존 `taskstatus`/`taskeventaction`이 대문자로 박혀있어서 이 패턴 일관 유지. ORM round-trip 테스트로 검증 완료.
 - **`mapped_column(default=X)` Python init-time 미적용**: SQLAlchemy 2.0 `default=`는 INSERT 시점만 주입. Python `__init__` 시점엔 None. 우리 default 검증 테스트(Project/Task/LogIngestToken/ErrorGroup) 통과 위해 `__init__` override 패턴 추가 (`kwargs.setdefault`). plan 작성 시 SQLAlchemy 의미 혼동했던 부분 — 후속 plan 작성 시 주의.
 - **pg_partman 미도입**: 30일 pre-create 만. Phase 7 진입 시 일별 자동 GC 도입.
-- **Python 3.12.13 venv (homebrew python@3.12)**: 맥미니에 처음 forps 백엔드 셋업. `backend/runtime.txt` 의 `python-3.12.12` 와 정합. `requirements.txt` 핀 그대로 (pydantic 2.5.3 + sqlalchemy 2.0.25 등). Python 3.14 시도 시 pydantic-core/greenlet 빌드 실패 — 3.12 권장.
-- **Phase 2 진입 전 Fernet 마스터 키 환경변수**: `FORPS_FERNET_KEY` 셋업 필요 (webhook_secret_encrypted 복호화).
+- **Python 3.12.13 venv (homebrew python@3.12)**: 맥미니에 처음 pslog 백엔드 셋업. `backend/runtime.txt` 의 `python-3.12.12` 와 정합. `requirements.txt` 핀 그대로 (pydantic 2.5.3 + sqlalchemy 2.0.25 등). Python 3.14 시도 시 pydantic-core/greenlet 빌드 실패 — 3.12 권장.
+- **Phase 2 진입 전 Fernet 마스터 키 환경변수**: `PSLOG_FERNET_KEY` 셋업 필요 (webhook_secret_encrypted 복호화).
 - **task-automation Phase 4 안정화 후** error-log Phase 2(ingest endpoint) 진입 가능 (선행 의존: Handoff/Task의 commit_sha join key 안정 필요).
 
 ---
 
 ## 2026-04-27
 
-- [x] 두 설계서 + 어제 handoff 파일 git 커밋 (forps `7f7f692`)
+- [x] 두 설계서 + 어제 handoff 파일 git 커밋 (pslog `7f7f692`)
 - [x] 두 설계서 교차 일관성 보강 — Plan 에이전트 독립 리뷰 후 4개 warning 패치
   - [x] error-log §5.4 wire format 명세 추가 (요청 헤더 + JSON 본문)
   - [x] error-log §4.2 archived task의 git 컨텍스트 join 정책 명시
   - [x] task-automation `commit_sha`/`last_commit_sha` 40자 hex full 계약 명시 + Decision Log 항목 (Phase 1 alembic CHECK 제약 대상)
   - [x] task-automation §13 Open Q #6 — Brief single-flight lock workers=1 가정 + 다중 워커 승격 경로
 - [x] **Phase 0 완료 (app-chak 레포)** — PR #1 머지
-  - [x] `CLAUDE.md` `## forps 연동 규칙` 섹션
-  - [x] `PLAN.md` 초안 (첫 마스터 태스크 = forps 연동 자체, 5/2~5/3 기획 회의 후 추가)
+  - [x] `CLAUDE.md` `## pslog 연동 규칙` 섹션
+  - [x] `PLAN.md` 초안 (첫 마스터 태스크 = pslog 연동 자체, 5/2~5/3 기획 회의 후 추가)
   - [x] `handoffs/README.md` + 본 브랜치 handoff
   - [x] `Dockerfile` + `docker-compose.yml` `APP_VERSION_SHA` build arg 주입
-  - [x] `backend/app/utils/forps_log_handler.py` — `PIIFilter` + `ForpsHandler` (배치 큐 / gzip / Bearer / 5xx exponential backoff / 4xx silent drop / 큐 한도 1000건·5MB / `X-Forps-Dropped-Since-Last` 헤더 / atexit 5초)
+  - [x] `backend/app/utils/pslog_log_handler.py` — `PIIFilter` + `pslogHandler` (배치 큐 / gzip / Bearer / 5xx exponential backoff / 4xx silent drop / 큐 한도 1000건·5MB / `X-pslog-Dropped-Since-Last` 헤더 / atexit 5초)
   - [x] `configure_logging()` 확장 + `main.py` 에서 settings 의 모든 비밀 키를 PIIFilter `exact_secrets` 로 전달
   - [x] 단위 테스트 27개, 전체 backend 127/127 통과 회귀 없음
 
 ### 마지막 커밋
 
-- forps: `7f7f692 docs: 에러 로그 설계서 + 두 설계서 교차 일관성 보강` (origin/main)
-- app-chak: PR #1 머지 — `feat: forps 에러 로그 핸들러 + 연동 인프라 (Phase 0)` (origin/main)
+- pslog: `7f7f692 docs: 에러 로그 설계서 + 두 설계서 교차 일관성 보강` (origin/main)
+- app-chak: PR #1 머지 — `feat: pslog 에러 로그 핸들러 + 연동 인프라 (Phase 0)` (origin/main)
 
-### 다음 (Phase 1 — forps 본체 alembic 마이그레이션)
+### 다음 (Phase 1 — pslog 본체 alembic 마이그레이션)
 
 - [ ] 신규 테이블 모델
   - [ ] `LogEvent` (PostgreSQL 일별 range partition + DROP PARTITION GC)
@@ -633,10 +633,10 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 ### 메모 (2026-04-27 추가)
 
 - **archived task join 정책 (PR 리뷰 결정)**: `Task.archived_at IS NOT NULL` row 도 LogEvent git 컨텍스트 join 에 포함, UI 에서 `(archived)` 배지 — Phase 4 GitContextPanel 구현 시 반영.
-- **app-chak self-hosted runner Docker 이슈**: `~/.docker/config.json` 의 `credsStore: "desktop"` 가 비대화형 launchd 세션에서 keychain unlock 실패. 제거 + URL inline `x-access-token:$GITHUB_TOKEN` 으로 우회. forps 본체도 self-hosted runner 가면 동일 함정 — 운영 노트 참고.
-- **forps_log_handler `exact_secrets` 패턴**: app-chak 은 `JWT_SECRET_KEY` + Google/Kakao/OpenWeather/Solar/Places API 키 6종을 통째로 PIIFilter 에 넣음. forps 본체도 동일 패턴 적용 권고.
-- **forps 측 ingest endpoint** (`/api/v1/log-ingest`) 미구현 상태 — app-chak 은 `FORPS_LOG_ENDPOINT` 비워둬서 핸들러 자동 비활성. Phase 2 진입 후 e2e 검증.
-- **2026-05-02~03 주말 확장 기획 회의** — 회의 후 app-chak `PLAN.md` 에 마스터 태스크 추가, forps 측에서 sync 동작 실제 테스트 가능.
+- **app-chak self-hosted runner Docker 이슈**: `~/.docker/config.json` 의 `credsStore: "desktop"` 가 비대화형 launchd 세션에서 keychain unlock 실패. 제거 + URL inline `x-access-token:$GITHUB_TOKEN` 으로 우회. pslog 본체도 self-hosted runner 가면 동일 함정 — 운영 노트 참고.
+- **pslog_log_handler `exact_secrets` 패턴**: app-chak 은 `JWT_SECRET_KEY` + Google/Kakao/OpenWeather/Solar/Places API 키 6종을 통째로 PIIFilter 에 넣음. pslog 본체도 동일 패턴 적용 권고.
+- **pslog 측 ingest endpoint** (`/api/v1/log-ingest`) 미구현 상태 — app-chak 은 `PSLOG_LOG_ENDPOINT` 비워둬서 핸들러 자동 비활성. Phase 2 진입 후 e2e 검증.
+- **2026-05-02~03 주말 확장 기획 회의** — 회의 후 app-chak `PLAN.md` 에 마스터 태스크 추가, pslog 측에서 sync 동작 실제 테스트 가능.
 
 ---
 
@@ -663,7 +663,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
   - [x] PostgreSQL 일별 range partition + `DROP PARTITION` GC
   - [x] `ErrorGroup` status 전이 ASCII 다이어그램
   - [x] 알림 cooldown 3종 (신규/spike/regression)
-  - [x] 핸들러 forps 다운 정책 (큐 1000건/5MB, backoff, atexit, drop_count 헤더)
+  - [x] 핸들러 pslog 다운 정책 (큐 1000건/5MB, backoff, atexit, drop_count 헤더)
   - [x] `pg_trgm` 풀텍스트 검색 Phase 5 격상
   - [x] 핸들러 배포 방식 결정 (app-chak 레포 직접 복사)
 
@@ -676,17 +676,17 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 
 - [ ] 두 설계서 + handoff 파일 git 커밋
 - [ ] **Phase 0 시작 (app-chak 레포 측)** — `/Users/arden/Documents/ardensdevspace/app-chak/`
-  - [ ] `CLAUDE.md`에 forps 연동 규칙 추가 (task-automation §11.1)
+  - [ ] `CLAUDE.md`에 pslog 연동 규칙 추가 (task-automation §11.1)
   - [ ] 초기 `PLAN.md` 작성 (마스터 태스크 목록, 골디락스 룰 0.5~3일 적용)
   - [ ] `handoffs/` 디렉토리 + 사용 가이드 README
   - [ ] `APP_VERSION_SHA` 환경변수 주입 메커니즘 (Docker build arg)
-  - [ ] `backend/app/utils/forps_log_handler.py` 단일 모듈 작성
+  - [ ] `backend/app/utils/pslog_log_handler.py` 단일 모듈 작성
     - [ ] `logging.Handler` 서브클래스 + 배치 큐
     - [ ] `PIIFilter` (이메일/JWT/password/Bearer 패턴)
     - [ ] HTTP backoff (1s/5s/30s/5min)
     - [ ] atexit 5초 타임아웃
-    - [ ] drop_count 헤더 (`X-Forps-Dropped-Since-Last`)
-- [ ] Phase 0 끝나면 forps Phase 1 (alembic 마이그레이션) 진입
+    - [ ] drop_count 헤더 (`X-pslog-Dropped-Since-Last`)
+- [ ] Phase 0 끝나면 pslog Phase 1 (alembic 마이그레이션) 진입
 
 ### 블로커
 
@@ -695,7 +695,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 ### 메모
 
 - 두 설계서 진행 순서: **task-automation 먼저 Phase 4 안정화 → error-log 진입.** error-log는 task-automation의 `Handoff.commit_sha` / `Task.last_commit_sha`를 join key로 사용하므로 선행 의존.
-- forps 운영 가정: **uvicorn `workers=1`** (맥미니 단일 머신). 다중 워커 필요해지면 spike 감지 부정확 — 운영 문서에 박아둘 것.
+- pslog 운영 가정: **uvicorn `workers=1`** (맥미니 단일 머신). 다중 워커 필요해지면 spike 감지 부정확 — 운영 문서에 박아둘 것.
 - PII 필터 패턴 셋은 Phase 0 시점에 app-chak 코드 실제로 보고 확정 (현재 미정).
 - 두 문서 모두 한국어, 14개 섹션 구조, Decision Log로 끝나는 동일 포맷 유지.
 - `/plan-eng-review` 2회 거치며 발견된 가장 큰 함정: **task-automation에서 잡은 reaper 패턴을 error-log 초안에서 또 빼먹었음.** 새 백그라운드 작업 추가할 때마다 reaper 체크리스트화 필요.

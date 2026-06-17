@@ -9,7 +9,7 @@
 **Tech Stack:** SQLAlchemy 2.0.25, alembic 1.13.1, asyncpg 0.30.0, pytest, pytest-asyncio, PostgreSQL 14+ (pg_trgm + declarative partitioning).
 
 **선행 조건:**
-- forps main 브랜치, alembic head = `be8724268ae4`
+- pslog main 브랜치, alembic head = `be8724268ae4`
 - app-chak Phase 0 PR #1 머지 완료 (handoff `2026-04-27` 기록)
 - 두 설계서: `docs/superpowers/specs/2026-04-26-ai-task-automation-design.md`, `docs/superpowers/specs/2026-04-26-error-log-design.md`
 
@@ -2035,7 +2035,7 @@ Edit `handoffs/main.md` — 파일 상단(`# Handoff: main — @ardensdevspace` 
 ```markdown
 ## 2026-04-28
 
-- [x] **Phase 1 완료** — forps 본체 alembic 마이그레이션 + pytest 인프라
+- [x] **Phase 1 완료** — pslog 본체 alembic 마이그레이션 + pytest 인프라
   - [x] 테스트 인프라: pytest + pytest-asyncio + pytest-postgresql, async DB fixture
   - [x] enum 확장: TaskSource, LogLevel, ErrorGroupStatus, TaskEventAction +4값
   - [x] Project +6 필드 (git_repo_url, git_default_branch, plan_path, handoff_dir, last_synced_commit_sha, webhook_secret_encrypted)
@@ -2048,7 +2048,7 @@ Edit `handoffs/main.md` — 파일 상단(`# Handoff: main — @ardensdevspace` 
 
 ### 마지막 커밋
 
-- forps: `<phase1 commit hash>` (브랜치 `<branch>`)
+- pslog: `<phase1 commit hash>` (브랜치 `<branch>`)
 
 ### 다음 (Phase 2 — Webhook 수신만)
 
@@ -2067,7 +2067,7 @@ Edit `handoffs/main.md` — 파일 상단(`# Handoff: main — @ardensdevspace` 
 - Phase 1 의 단일 alembic revision 은 모든 신규 모델 + 기존 모델 확장 포함.
   downgrade 시 PostgreSQL ALTER TYPE DROP VALUE 미지원으로 TaskEventAction 4값은 잔존 (운영 노트).
 - pg_partman 미도입 — 30일 pre-create 만. Phase 7 진입 시 자동 GC 도입.
-- 다음 phase 의 Webhook secret 검증을 위해 Fernet 마스터 키 (`FORPS_FERNET_KEY`) 환경변수 셋업 필요.
+- 다음 phase 의 Webhook secret 검증을 위해 Fernet 마스터 키 (`PSLOG_FERNET_KEY`) 환경변수 셋업 필요.
 - task-automation 설계서의 Phase 4 안정화 후 error-log 의 Phase 2(ingest endpoint) 진입 가능.
 
 ---
@@ -2099,5 +2099,5 @@ git commit -m "docs(handoff): Phase 1 완료 기록 + Phase 2 다음 할 일"
 - log-ingest endpoint 는 task-automation Phase 4 안정화 후 별도 plan
 
 선행 의존:
-- task-automation 설계서 §11.1 — app-chak `CLAUDE.md` 의 forps 연동 규칙 (이미 Phase 0 PR #1 로 머지됨)
+- task-automation 설계서 §11.1 — app-chak `CLAUDE.md` 의 pslog 연동 규칙 (이미 Phase 0 PR #1 로 머지됨)
 - error-log 설계서 §14 — handler 배포 = app-chak 레포 직접 복사 (이미 Phase 0 PR #1)

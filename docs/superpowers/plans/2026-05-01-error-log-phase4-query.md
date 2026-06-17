@@ -9,7 +9,7 @@
 **Tech Stack:** FastAPI 0.115, SQLAlchemy 2.0 async (LEFT JOIN + IS NULL pattern, IN clause, ILIKE), Pydantic v2, pg_trgm (Phase 1 alembic 의 `idx_log_message_trgm` partial index 자동 활용), pytest + testcontainers PostgreSQL.
 
 **선행 조건:**
-- forps `main` = `0f1cb10` (Error-log Phase 3 PR #17 머지 직후)
+- pslog `main` = `0f1cb10` (Error-log Phase 3 PR #17 머지 직후)
 - alembic head = `7c6e0c9bb915` (Phase 1 의 모든 모델 + 인덱스 + Phase 6 컬럼 포함)
 - backend tests baseline = **256 passing**
 - Phase 3 가 채운 ErrorGroup 데이터 활용 (테스트는 별도 시드)
@@ -82,7 +82,7 @@
 - [ ] **Step 1: Baseline 확인**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase4-query/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase4-query/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -223,7 +223,7 @@ Expected: `256 passed`. 영향 없음.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase4-query
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase4-query
 git add backend/app/schemas/log_query.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase4): Pydantic schemas (log_query)
@@ -990,7 +990,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1167,7 +1167,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1485,7 +1485,7 @@ Expected: 8 신규 PASS, 전체 `275 passed` (267 + 8).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase4-query
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase4-query
 git add backend/app/api/v1/endpoints/log_errors.py backend/app/api/v1/endpoints/log_logs.py backend/app/api/v1/router.py backend/tests/test_log_errors_endpoint.py backend/tests/test_log_logs_endpoint.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase4): 3 GET endpoints — /errors, /errors/{id}, /logs
@@ -1509,7 +1509,7 @@ EOF
 - [ ] **Step 1: 전체 backend 회귀**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase4-query/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase4-query/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -1536,7 +1536,7 @@ Expected: `275 passed` (256 baseline + 19 신규: 11 service + 5 errors endpoint
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Error-log Phase 4 완료 + Phase 5/6 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Error-log Phase 4 완료 + Phase 5/6 다음 할 일`
 - 브랜치 base: `0f1cb10` (main, Error-log Phase 3 PR #17 머지 직후)
 
 ### 다음 (Phase 5 — UI)
@@ -1567,7 +1567,7 @@ Expected: `275 passed` (256 baseline + 19 신규: 11 service + 5 errors endpoint
 - [ ] **Step 4: handoff + plan commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase4-query
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase4-query
 git add handoffs/main.md docs/superpowers/plans/2026-05-01-error-log-phase4-query.md
 git commit -m "$(cat <<'EOF'
 docs(handoff+plan): Error-log Phase 4 완료 + Phase 5/6 다음 할 일

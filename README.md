@@ -1,4 +1,4 @@
-# forps
+# pslog
 
 B2B 협업 업무 관리 툴 (Task Management & Collaboration Tool)
 
@@ -6,7 +6,7 @@ B2B 협업 업무 관리 툴 (Task Management & Collaboration Tool)
 
 ### Backend
 - **FastAPI** - Python 웹 프레임워크
-- **PostgreSQL** - 데이터베이스 (로컬: Docker, 배포: Railway)
+- **PostgreSQL** - 데이터베이스 (로컬/운영 모두 Docker)
 - **SQLAlchemy** - ORM
 - **Alembic** - DB 마이그레이션
 - **JWT** - 인증
@@ -18,7 +18,7 @@ B2B 협업 업무 관리 툴 (Task Management & Collaboration Tool)
 ## 프로젝트 구조
 
 ```
-forps/
+pslog/
 ├── backend/
 │   ├── app/
 │   │   ├── models/          # DB 모델
@@ -46,7 +46,7 @@ forps/
 
 ## 시작하기
 
-`Makefile` 이 dev 환경 setup 자동화. **app-chak 같은 다른 서비스가 8000/5432 점유 중이어도 충돌 없음** — forps 는 backend 8081 / postgres 5433 default.
+`Makefile` 이 dev 환경 setup 자동화. **app-chak 같은 다른 서비스가 8000/5432 점유 중이어도 충돌 없음** — pslog 는 backend 8081 / postgres 5433 default.
 
 ### 첫 setup (한 번만)
 
@@ -56,9 +56,9 @@ make setup
 
 이걸로 다음이 한 번에 됨:
 - `backend/venv` 생성 + dev deps 설치
-- `backend/.env` 자동 생성 (SECRET_KEY / FORPS_FERNET_KEY 랜덤)
+- `backend/.env` 자동 생성 (SECRET_KEY / PSLOG_FERNET_KEY 랜덤)
 - `frontend/.env.local` 자동 생성 (`VITE_API_URL` 가 backend port 가리킴)
-- `forps-postgres` Docker 컨테이너 5433 에 띄움
+- `pslog-postgres` Docker 컨테이너 5433 에 띄움
 - `alembic upgrade head`
 - `frontend` deps 설치 (bun)
 
@@ -81,9 +81,9 @@ make frontend    # vite http://localhost:5173
 ```bash
 make migrate     # alembic upgrade head
 make test        # backend pytest + frontend build/lint
-make db-down     # forps-postgres 만 stop (app-chak 안 건드림)
+make db-down     # pslog-postgres 만 stop (app-chak 안 건드림)
 make db-up       # 다시 띄움
-make clean       # forps-postgres 컨테이너 삭제 (volume 은 prune 별도)
+make clean       # pslog-postgres 컨테이너 삭제 (volume 은 prune 별도)
 make help        # 전체 target 목록
 ```
 
@@ -98,13 +98,13 @@ make db-up PG_PORT=5432
 
 ```bash
 # 1. PostgreSQL — app-chak 과 충돌 없는 5433 사용 권장
-docker run -d --name forps-postgres \
-  -e POSTGRES_USER=forps -e POSTGRES_PASSWORD=forps123 -e POSTGRES_DB=forps \
+docker run -d --name pslog-postgres \
+  -e POSTGRES_USER=pslog -e POSTGRES_PASSWORD=pslog123 -e POSTGRES_DB=pslog \
   -p 5433:5432 postgres:16-alpine
 
 # 2. backend env (template: backend/.env.example)
 cp backend/.env.example backend/.env
-# SECRET_KEY / FORPS_FERNET_KEY 채우기
+# SECRET_KEY / PSLOG_FERNET_KEY 채우기
 
 # 3. backend
 cd backend
@@ -159,25 +159,42 @@ alembic downgrade -1
 |---|---|---|
 | `DATABASE_URL` | backend/.env | PostgreSQL async URL (asyncpg driver) |
 | `SECRET_KEY` | backend/.env | JWT 서명. `secrets.token_urlsafe(32)` |
-| `FORPS_FERNET_KEY` | backend/.env | Webhook secret / GitHub PAT 암호화. `Fernet.generate_key()` |
-| `FORPS_PUBLIC_URL` | backend/.env | webhook callback URL (GitHub 가 호출). 로컬: `http://localhost:8081` / 운영: Cloudflare Tunnel URL |
+| `PSLOG_FERNET_KEY` | backend/.env | Webhook secret / GitHub PAT 암호화. `Fernet.generate_key()` |
+| `PSLOG_PUBLIC_URL` | backend/.env | webhook callback URL (GitHub 가 호출). 로컬: `http://localhost:8081` / 운영: Cloudflare Tunnel URL |
 | `ALLOWED_ORIGINS` | backend/.env | CORS — frontend origin (default `http://localhost:5173`) |
 | `VITE_API_URL` | frontend/.env.local | backend API base URL (default `http://localhost:8081/api/v1`) |
 
-## 배포 (Railway)
+## 배포
 
-Railway는 환경변수 `DATABASE_URL`을 자동으로 설정합니다.
+운영은 **이 호스트의 docker compose** 로 돌린다 (Railway/Render PaaS 아님 — repo 의 `render.yaml`/`netlify.toml` 은 대안 설정일 뿐 현재 활성 경로가 아님). 외부 노출은 **Cloudflare Tunnel** 이 공개 도메인 → `localhost:8081` 로 매핑 (`PSLOG_PUBLIC_URL`, GitHub webhook 이 이 URL 로 들어옴).
+
+> ⚠️ **자동 배포 아님.** main 에 push 해도 컨테이너는 그대로다 (CI/webhook 없음). 새 코드를 반영하려면 **이 호스트에서 직접** 아래 명령을 쳐야 한다.
+
+### 백엔드 (docker compose)
 
 ```bash
-# Railway CLI 설치
-npm install -g @railway/cli
-
-# 로그인
-railway login
-
-# 배포
-railway up
+make up        # 최초 기동: postgres + backend 컨테이너 (alembic 자동 적용)
+make restart   # 코드 갱신 후 재배포: backend 만 rebuild + 재기동
+make logs      # 백엔드 로그 follow
+make ps        # 컨테이너 상태
 ```
+
+- `make restart` = `docker compose up -d --build backend` — **현재 체크아웃된 코드**(`./backend`)로 이미지 재빌드.
+- 컨테이너 시작 시 `alembic upgrade head` → uvicorn(:8081) 순으로 자동 실행 (`backend/Dockerfile` CMD). 즉 **마이그레이션은 배포 때 알아서 적용**된다.
+- postgres 데이터는 `pslog_pgdata` named volume 에 영속. `make clean` 은 volume 까지 삭제(데이터 소실)이므로 주의.
+- 운영 환경변수는 `backend/.env` 가 컨테이너에 그대로 주입된다 (`DATABASE_URL` 만 compose 가 internal network 용으로 override). `PSLOG_FERNET_KEY` 가 비면 부팅 실패하니 반드시 채울 것.
+
+### 프론트엔드 (별도 호스트)
+
+compose 는 backend + postgres 만 띄운다. 프론트는 정적 빌드 후 별도로 서빙한다.
+
+```bash
+cd frontend && bun run build   # = tsc -b && vite build → frontend/dist/
+```
+
+> ⚠️ **`VITE_API_URL` 은 빌드 시점에 정적으로 박힌다** (Vite). 운영용 빌드 전에 `frontend/.env.local` 의 `VITE_API_URL` 을 **공개 백엔드 URL**(Cloudflare Tunnel 도메인 + `/api/v1`)로 바꿀 것. 로컬 기본값(`http://localhost:8081/api/v1`)으로 빌드하면 로컬에서만 동작한다.
+
+생성된 `frontend/dist/` 를 정적 호스트에 올린다 (`netlify.toml` + `dist/_redirects` 는 Netlify SPA 리다이렉트용 설정).
 
 ## 구현 상태 (2026-02 기준)
 

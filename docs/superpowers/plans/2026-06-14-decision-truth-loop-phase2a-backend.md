@@ -2,22 +2,22 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** pslog(forps)가 handoff `### 결정`의 미승격(A)과 handoff↔PLAN 상태 모순(B)을 자동 감지해 `Drift` 레코드(OPEN→자동 RESOLVED/수동 IGNORED)로 가시화하고 Discord로 알린다. 백엔드만 — API까지 동작, 프론트는 Phase 2b.
+**Goal:** pslog(pslog)가 handoff `### 결정`의 미승격(A)과 handoff↔PLAN 상태 모순(B)을 자동 감지해 `Drift` 레코드(OPEN→자동 RESOLVED/수동 IGNORED)로 가시화하고 Discord로 알린다. 백엔드만 — API까지 동작, 프론트는 Phase 2b.
 
 **Architecture:**
 - **B (상태 모순)**: 기존 git push sync 경로(`sync_service`)에서, **이미 DB에 저장 중인** `Handoff.parsed_tasks`(지금까지 안 쓰던 데이터)를 `Task.status`와 `external_id`로 조인해 모순 감지.
 - **A (결정 미승격)**: 새 GitHub `pull_request` 웹훅 이벤트에서, 브랜치 handoff의 `### 결정` 항목 중 `→ DECISIONS`/`→ ADR` 마커가 없거나 PR diff에 DECISIONS.md 변경이 없으면 감지.
 - 공용 `Drift` 모델 + `drift_service`(멱등 open/resolve) + Discord dispatch. `error_group` 패턴을 그대로 차용.
 
-**Tech Stack:** FastAPI, SQLAlchemy 2.0 async, Alembic, Pydantic v2, pytest(async_session 픽스처). 모든 코드는 `forps/backend`.
+**Tech Stack:** FastAPI, SQLAlchemy 2.0 async, Alembic, Pydantic v2, pytest(async_session 픽스처). 모든 코드는 `pslog/backend`.
 
 **상위 설계서:** `docs/superpowers/specs/2026-06-14-decision-truth-loop-design.md` §5, §7. (§7 미결 4건 확정: Q1=PR 웹훅 추가 / Q2=마커 기반+파일변경 교차확인 / Q3=external_id inner-join, 서브체크박스 제외 / Q4=한국어, i18n 없음.)
 
-**작업 브랜치:** forps repo 에서 `feat/pslog-drift-detection` (main 기준 생성).
+**작업 브랜치:** pslog repo 에서 `feat/pslog-drift-detection` (main 기준 생성).
 
 ---
 
-## File Structure (forps/backend)
+## File Structure (pslog/backend)
 
 | 파일 | 변경 | 책임 |
 |---|---|---|
@@ -44,7 +44,7 @@
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps && git checkout main && git pull --ff-only 2>/dev/null; git checkout -b feat/pslog-drift-detection && git branch --show-current
+cd ~/Documents/ardensdevspace/pslog && git checkout main && git pull --ff-only 2>/dev/null; git checkout -b feat/pslog-drift-detection && git branch --show-current
 ```
 Expected: `feat/pslog-drift-detection`
 
@@ -52,7 +52,7 @@ Expected: `feat/pslog-drift-detection`
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest -q 2>&1 | tail -5
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest -q 2>&1 | tail -5
 ```
 Expected: 전부 PASS (baseline). 실패가 이미 있으면 사용자에게 보고 후 진행.
 
@@ -89,14 +89,14 @@ class Decision(BaseModel):
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -c "from app.schemas.parsed_handoff import Decision, HandoffSection; print(HandoffSection().decisions)"
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -c "from app.schemas.parsed_handoff import Decision, HandoffSection; print(HandoffSection().decisions)"
 ```
 Expected: `[]`
 
 - [ ] **Step 3: 커밋**
 
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && git add app/schemas/parsed_handoff.py && git commit -m "feat(schema): ParsedHandoff에 Decision + HandoffSection.decisions"
+cd ~/Documents/ardensdevspace/pslog/backend && git add app/schemas/parsed_handoff.py && git commit -m "feat(schema): ParsedHandoff에 Decision + HandoffSection.decisions"
 ```
 
 ---
@@ -137,7 +137,7 @@ def test_parse_handoff_decisions_section():
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest tests/test_handoff_parser_service.py::test_parse_handoff_decisions_section -q
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest tests/test_handoff_parser_service.py::test_parse_handoff_decisions_section -q
 ```
 Expected: FAIL (`decisions` 비어있음 → assert 0 == 2).
 
@@ -225,7 +225,7 @@ def _parse_section_body(body_lines: list[str]) -> tuple[list[CheckItem], list[Su
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest tests/test_handoff_parser_service.py -q
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest tests/test_handoff_parser_service.py -q
 ```
 Expected: 신규 포함 전부 PASS. (`### 결정`이 free_notes 수집을 가로채지 않는지 — 기존 테스트로 회귀 확인.)
 
@@ -323,7 +323,7 @@ from app.models.drift import Drift, DriftStatus, DriftType  # noqa: F401
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -c "from app.models import Drift, DriftType, DriftStatus; from app.models.project import Project; print('decisions_path' in Project.__mapper__.columns)"
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -c "from app.models import Drift, DriftType, DriftStatus; from app.models.project import Project; print('decisions_path' in Project.__mapper__.columns)"
 ```
 Expected: `True`
 
@@ -344,7 +344,7 @@ git add app/models/drift.py app/models/project.py app/models/__init__.py && git 
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && alembic revision --autogenerate -m "phase7 drift detection: drifts table + projects.decisions_path"
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && alembic revision --autogenerate -m "phase7 drift detection: drifts table + projects.decisions_path"
 ```
 Expected: 새 버전 파일 생성.
 
@@ -362,7 +362,7 @@ Expected: 새 버전 파일 생성.
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && alembic upgrade head && alembic downgrade -1 && alembic upgrade head && echo "round-trip OK"
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && alembic upgrade head && alembic downgrade -1 && alembic upgrade head && echo "round-trip OK"
 ```
 Expected: 에러 없이 `round-trip OK`.
 
@@ -465,7 +465,7 @@ async def test_reconcile_idempotent_no_duplicate(async_session: AsyncSession):
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest tests/test_drift_service.py -q
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest tests/test_drift_service.py -q
 ```
 Expected: FAIL (`drift_service` / `DriftItem` / `reconcile` 미존재).
 
@@ -555,7 +555,7 @@ async def reconcile(
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest tests/test_drift_service.py -q
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest tests/test_drift_service.py -q
 ```
 Expected: 2 PASS.
 
@@ -661,7 +661,7 @@ async def test_detect_b_no_contradiction(async_session: AsyncSession):
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest tests/test_drift_detection_b.py -q
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest tests/test_drift_detection_b.py -q
 ```
 Expected: FAIL (`detect_status_contradictions` 미존재).
 
@@ -768,7 +768,7 @@ async def reconcile(
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest tests/test_drift_detection_b.py tests/test_drift_service.py -q && python -m pytest tests/ -q -k "sync or handoff or plan" 2>&1 | tail -5
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest tests/test_drift_detection_b.py tests/test_drift_service.py -q && python -m pytest tests/ -q -k "sync or handoff or plan" 2>&1 | tail -5
 ```
 Expected: drift 테스트 PASS + sync/handoff 회귀 PASS.
 
@@ -1112,7 +1112,7 @@ async def _run_drift_a(project_id, branch, head_sha, base_sha):
 
 웹훅 등록 코드(`git_settings` 엔드포인트 또는 GitHub API로 hook 생성하는 곳)에서 `"events": ["push"]` 를 `["push", "pull_request"]` 로 확장. 등록 지점:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && grep -rn '"push"' app/ | grep -i "event"
+cd ~/Documents/ardensdevspace/pslog/backend && grep -rn '"push"' app/ | grep -i "event"
 ```
 찾은 곳에서 `pull_request` 추가. (기존 등록된 hook은 GitHub UI/재등록으로 갱신 필요 — README/배포 노트에 1줄.)
 
@@ -1145,7 +1145,7 @@ git add app/api/v1/endpoints/webhooks.py tests/test_pr_webhook_endpoint.py && gi
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && grep -rn "log_errors\|errors" app/api/v1/ | grep -i "router\|include" | head
+cd ~/Documents/ardensdevspace/pslog/backend && grep -rn "log_errors\|errors" app/api/v1/ | grep -i "router\|include" | head
 ```
 → `log_errors` 라우터가 include되는 파일/패턴 확인 후 drifts도 동일하게 등록.
 
@@ -1277,7 +1277,7 @@ git add app/schemas/drift.py app/api/v1/endpoints/drifts.py app/api/v1/ tests/te
 def format_drift_alert(newly_opened: list[Drift]) -> str | None:
     if not newly_opened:
         return None
-    lines = ["⚠️ **forps 드리프트 감지**"]
+    lines = ["⚠️ **pslog 드리프트 감지**"]
     for d in newly_opened:
         lines.append(f"• [{d.type.value}] {d.branch} — {d.detail}")
     return "\n".join(lines)
@@ -1319,7 +1319,7 @@ git add app/services/drift_service.py app/services/sync_service.py app/api/v1/en
 
 Run:
 ```bash
-cd ~/Documents/ardensdevspace/forps/backend && source venv/bin/activate && python -m pytest -q 2>&1 | tail -8
+cd ~/Documents/ardensdevspace/pslog/backend && source venv/bin/activate && python -m pytest -q 2>&1 | tail -8
 ```
 Expected: 전부 PASS (Task 0 baseline 대비 신규만 추가).
 

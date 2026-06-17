@@ -12,7 +12,7 @@ import logging
 import os
 import uuid
 
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://placeholder/forps_test")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://placeholder/pslog_test")
 os.environ.setdefault("SECRET_KEY", "test-secret-not-used-by-tests")
 
 import pytest

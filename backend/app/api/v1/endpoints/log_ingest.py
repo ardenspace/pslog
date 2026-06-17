@@ -41,7 +41,7 @@ async def ingest_logs(
     background_tasks: BackgroundTasks,
     authorization: str | None = Header(default=None),
     content_encoding: str | None = Header(default=None),
-    x_forps_dropped_since_last: int | None = Header(default=None, alias="X-Forps-Dropped-Since-Last"),
+    x_pslog_dropped_since_last: int | None = Header(default=None, alias="X-pslog-Dropped-Since-Last"),
     db: AsyncSession = Depends(get_db),
 ):
     """외부 앱이 로그 batch 를 push.
@@ -78,7 +78,7 @@ async def ingest_logs(
         accepted, rejected, accepted_ids = await log_ingest_service.ingest_batch(
             db, token=token,
             payload_dict=payload,
-            dropped_since_last=x_forps_dropped_since_last,
+            dropped_since_last=x_pslog_dropped_since_last,
         )
     except HTTPException:
         # rate limit 429 / events 빈 list 400 등 그대로 propagate

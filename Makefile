@@ -1,14 +1,14 @@
-# forps dev 환경 자동화
-# app-chak (운영 서버, 8000/5432) 는 절대 안 건드림 — 모든 target 은 forps 자원만 대상.
+# pslog dev 환경 자동화
+# app-chak (운영 서버, 8000/5432) 는 절대 안 건드림 — 모든 target 은 pslog 자원만 대상.
 #
 # 두 가지 실행 모드:
 #  (1) always-on / production-ish:  `make up`           (docker compose: postgres + backend)
 #  (2) dev iteration (hot reload):  `make db-up` + `make backend`  (compose postgres + venv uvicorn)
 # 한 시점에 backend 는 둘 중 하나만 — 8081 포트 충돌.
 
-PG_USER := forps
-PG_PASSWORD := forps123
-PG_DB := forps
+PG_USER := pslog
+PG_PASSWORD := pslog123
+PG_DB := pslog
 PG_PORT ?= 5433
 BACKEND_PORT ?= 8081
 
@@ -26,7 +26,7 @@ COMPOSE := docker compose
 .PHONY: help setup env venv up down restart logs ps backend frontend db-up db-down stop clean migrate test test-backend test-frontend
 
 help:
-	@echo "forps dev targets:"
+	@echo "pslog dev targets:"
 	@echo "  make setup        # 첫 setup: venv + deps + .env + .env.local + db-up + migrate"
 	@echo ""
 	@echo "Always-on (compose):"
@@ -57,10 +57,10 @@ env:
 	@if [ ! -f backend/.env ]; then \
 		echo "DATABASE_URL=postgresql+asyncpg://$(PG_USER):$(PG_PASSWORD)@localhost:$(PG_PORT)/$(PG_DB)" > backend/.env; \
 		echo "SECRET_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" >> backend/.env; \
-		echo "FORPS_FERNET_KEY=$$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> backend/.env; \
-		echo "FORPS_PUBLIC_URL=$(BACKEND_HOST)" >> backend/.env; \
+		echo "PSLOG_FERNET_KEY=$$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> backend/.env; \
+		echo "PSLOG_PUBLIC_URL=$(BACKEND_HOST)" >> backend/.env; \
 		echo "ALLOWED_ORIGINS=http://localhost:5173" >> backend/.env; \
-		echo "✓ backend/.env 생성 (SECRET_KEY / FORPS_FERNET_KEY 자동 생성)"; \
+		echo "✓ backend/.env 생성 (SECRET_KEY / PSLOG_FERNET_KEY 자동 생성)"; \
 	else \
 		echo "ℹ backend/.env 이미 있음 — 보존"; \
 	fi
