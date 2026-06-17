@@ -21,9 +21,14 @@ pslog로 관리되는 repo에서 **할당받은 task 하나를 무게에 맞는 
    - light → `docs/tasks/task-NNN/brief.md` 작성 → **brief(특히 DoD) 사용자 확인** → 코드.
    - heavy → `docs/tasks/task-NNN/spec.md` 작성 → **사용자 승인** → `plan.md` 작성 →
      **사용자 승인** → 코드.
-5. **구현** — 승인된 plan/brief 의 Step·DoD 따라 코드. 진행하며 handoff 오늘 날짜 섹션 갱신.
-6. **마무리** — git push **직전 반드시 handoff commit**. task 끝나면 PLAN.md `[task-NNN]` 체크.
-   구현 중 기획과 달라진 결정은 handoff `### 결정` 에 적고 PR 때 DECISIONS.md 로 승격.
+5. **구현** — plan 의 Step 을 하나씩 따라 코드. **각 Step 끝엔 build/typecheck 로 안 깨졌나만 확인**한다
+   (step별 단위 테스트 작성·코드 리뷰는 *안 한다* — 응집·일관성은 퍼즐이 다 맞춰진 뒤에만 보인다. 나무 단위로 쪼개면 숲을 못 봄).
+   진행하며 handoff 오늘 날짜 섹션 갱신. 구현 중 plan 과 달라진 결정은 **그때그때 handoff `### 결정`에 기록**(끝 검증의 코드 리뷰에서 나온 결정도 여기로).
+6. **끝 검증** — 전체 구현이 끝나면 → **코드 리뷰 + 수정 → e2e(heavy) 또는 brief DoD 검증 명령(light)** 통과.
+   리뷰·테스트는 *브랜치 diff 전체*(숲)를 놓고 한 번에 본다. **여기서 멈춰 통과를 확인**한 뒤 마무리로.
+7. **마무리** — git push **직전 반드시 handoff commit**. task 끝나면 PLAN.md `[task-NNN]` 체크.
+   **PR(공유 통합 브랜치 첫 land) 때 spec·handoff 의 굳은 결정을 DECISIONS.md 로 승격**한다
+   (decision-truth-loop 와 물림 — 멱등: 이미 올라간 결정은 중복 안 함). 실시간 공유는 그 전에도 handoff push 가 담당.
 
 ## 멈춤 규칙 (강제)
 
@@ -34,6 +39,7 @@ pslog로 관리되는 repo에서 **할당받은 task 하나를 무게에 맞는 
 | spec → plan (heavy) | spec 초안 검토·승인 |
 | plan → 코드 | plan 검토·승인 |
 | brief → 코드 (light) | brief의 DoD 확인 |
+| 구현 → 마무리 | 끝 검증 통과 확인 (코드 리뷰 + e2e/DoD 명령) |
 
 승인 없이 다음 단계로 진입 금지. (이 멈춤이 이 방법론의 핵심 안전장치다.)
 
