@@ -12,7 +12,7 @@
 - pslog `main` = `29c7db7` (B2 PR #14 머지 직후), alembic head = `a1b2c3d4e5f6`
 - backend tests baseline = **184 passing**
 - frontend `bun run build` clean, `bun run lint` 8 pre-existing only
-- Python 3.12 venv (`backend/venv` symlink), `.env` 의 `pslog_FERNET_KEY` 존재
+- Python 3.12 venv (`backend/venv` symlink), `.env` 의 `PSLOG_FERNET_KEY` 존재
 - spec: `docs/superpowers/specs/2026-05-01-phase-6-discord-notifications-design.md`
 
 **중요한 계약:**

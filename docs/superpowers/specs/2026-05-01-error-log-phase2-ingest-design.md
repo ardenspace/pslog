@@ -4,7 +4,7 @@
 
 **Date**: 2026-05-01
 
-**Goal**: error-log spec (`2026-04-26-error-log-design.md`) 의 Phase 2 본편을 두 sub-phase 로 분할한 첫 번째 — **2a: 토큰 API + ingest endpoint + rate limit**. app-chak 의 Phase 0 handler 가 미사용 상태로 대기 중 (`pslog_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 동작.
+**Goal**: error-log spec (`2026-04-26-error-log-design.md`) 의 Phase 2 본편을 두 sub-phase 로 분할한 첫 번째 — **2a: 토큰 API + ingest endpoint + rate limit**. app-chak 의 Phase 0 handler 가 미사용 상태로 대기 중 (`PSLOG_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 동작.
 
 **선행**: pslog `main` = `7e51c20` (Phase 6 PR #15 머지 직후). backend tests 198 baseline. alembic head = `7c6e0c9bb915`. **마이그레이션 신규 없음** — 모든 컬럼 Phase 1 에 포함됨.
 
@@ -28,7 +28,7 @@
 - Discord 알림 (Phase 6 of error-log spec)
 - `GET /log-tokens` 토큰 목록 조회 (Phase 5 LogTokensPage 와 함께)
 
-본 phase 머지 후 e2e 가능: pslog API 로 토큰 발급 → app-chak `.env` 의 `pslog_LOG_INGEST_TOKEN` 설정 → handler 자동 활성 → LogEvent 가 pslog DB 에 들어옴 (fingerprint=NULL).
+본 phase 머지 후 e2e 가능: pslog API 로 토큰 발급 → app-chak `.env` 의 `PSLOG_LOG_INGEST_TOKEN` 설정 → handler 자동 활성 → LogEvent 가 pslog DB 에 들어옴 (fingerprint=NULL).
 
 ---
 
@@ -430,7 +430,7 @@ class LogTokenRevokedResponse(BaseModel):
 ### 4.4. e2e (사용자, PR 머지 전)
 
 - pslog dev server + curl POST /log-tokens 로 토큰 발급 → 평문 받음
-- app-chak 의 `.env` 에 `pslog_LOG_INGEST_TOKEN={token}` + `pslog_LOG_ENDPOINT=http://localhost:8081/api/v1/log-ingest` 설정
+- app-chak 의 `.env` 에 `PSLOG_LOG_INGEST_TOKEN={token}` + `PSLOG_LOG_ENDPOINT=http://localhost:8081/api/v1/log-ingest` 설정
 - app-chak 재시작 → handler 자동 활성
 - app-chak 에서 의도적 `logger.error("test")` → pslog DB 의 log_events 테이블에 INSERT 확인
 - gzip 압축 batch 와 plain JSON batch 둘 다 동작 검증

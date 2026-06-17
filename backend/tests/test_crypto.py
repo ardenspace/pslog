@@ -12,7 +12,7 @@ from app.core.crypto import (
 
 def _set_master_key(monkeypatch: pytest.MonkeyPatch) -> str:
     key = Fernet.generate_key().decode()
-    monkeypatch.setenv("pslog_FERNET_KEY", key)
+    monkeypatch.setenv("PSLOG_FERNET_KEY", key)
     # config singleton reload — settings reads env at instantiation
     import importlib
     import app.config
@@ -34,7 +34,7 @@ def test_decrypt_with_wrong_master_key_raises(monkeypatch: pytest.MonkeyPatch):
     blob = encrypt_secret("hello")
 
     # rotate to a different master key
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)

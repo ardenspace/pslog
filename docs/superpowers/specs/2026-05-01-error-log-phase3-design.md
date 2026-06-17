@@ -703,7 +703,7 @@ Breakdown: 8 (fingerprint_service) + 6 (error_group_service) + 4 (fingerprint_pr
 ### 4.3. e2e (사용자, PR 머지 전)
 
 - pslog dev server 재시작 → log_fingerprint_reaper 부팅 hook 정상 (logger 메시지 확인)
-- app-chak 의 `.env` 의 `pslog_LOG_INGEST_TOKEN` 설정된 상태 (Phase 2a 머지 후 e2e 가능)
+- app-chak 의 `.env` 의 `PSLOG_LOG_INGEST_TOKEN` 설정된 상태 (Phase 2a 머지 후 e2e 가능)
 - 의도적 `logger.error("test new error")` from app-chak → pslog `log_events` INSERT 후 BackgroundTask 가 fingerprint + ErrorGroup UPSERT
 - pslog DB 직접 SQL — `SELECT * FROM error_groups` → 1 row, status=OPEN, fingerprint 결정성 확인
 - pslog Discord 채널 — 🆕 새 에러 알림 1회 확인

@@ -404,8 +404,8 @@ LOGGING = {
     "handlers": {
         "pslog": {
             "class": "app.utils.pslog_log_handler.pslogHandler",
-            "endpoint": os.environ["pslog_LOG_ENDPOINT"],
-            "token": os.environ["pslog_LOG_INGEST_TOKEN"],   # "<key_id>.<secret>"
+            "endpoint": os.environ["PSLOG_LOG_ENDPOINT"],
+            "token": os.environ["PSLOG_LOG_INGEST_TOKEN"],   # "<key_id>.<secret>"
             "version_sha": os.environ.get("APP_VERSION_SHA", "unknown"),
             "environment": os.environ.get("APP_ENV", "production"),
             "level": "INFO",
@@ -559,7 +559,7 @@ resolved (사용자 액션)    → 알림 없음 (UI 액션이 본인 명시적 
 
 ## 8. 보안 / 프라이버시
 
-- **토큰**: `<key_id>.<secret>` 포맷. key_id는 평문 lookup, secret은 bcrypt 해시 저장. 발급 시 1회만 평문 노출. 환경변수 `pslog_LOG_INGEST_TOKEN`으로 app-chak에 주입.
+- **토큰**: `<key_id>.<secret>` 포맷. key_id는 평문 lookup, secret은 bcrypt 해시 저장. 발급 시 1회만 평문 노출. 환경변수 `PSLOG_LOG_INGEST_TOKEN`으로 app-chak에 주입.
 - **토큰 발급 권한**: 프로젝트 OWNER/MAINTAINER 권한자만 (`permission_service` 재활용). 멤버는 발급 불가.
 - **PII 마스킹**: app-chak 측 logging filter (`PIIFilter`)에서 password/token/email 패턴 마스킹. 송신 측 책임 (pslog가 다시 마스킹하면 이중 처리 + 누락 위험). **단** pslog 측 `log_ingest_service`는 의심 패턴(JWT 형태, 32자 hex, `password=`)을 휴리스틱 감지해 카운터 증가 + 일정 기준 초과 시 운영자에 경고 (마스킹은 안 함, 가시화만).
 - **Rate limit**: 토큰별 분당 600건 (≈10 EPS) 기본. 초과 시 429. UI에서 한도 조정.

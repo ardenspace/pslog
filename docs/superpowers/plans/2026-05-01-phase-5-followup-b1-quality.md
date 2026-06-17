@@ -11,7 +11,7 @@
 **선행 조건:**
 - pslog `main`, alembic head = `a1b2c3d4e5f6` (Phase 5a 머지 완료, Phase 5b 머지 완료 — PR #11 + PR #12)
 - 170 backend tests baseline (Phase 1+2+3+4+5a+5b 전부)
-- Python 3.12.13 venv (`backend/venv`), `.env` 의 `pslog_FERNET_KEY` 존재
+- Python 3.12.13 venv (`backend/venv`), `.env` 의 `PSLOG_FERNET_KEY` 존재
 
 **중요한 계약:**
 
@@ -660,7 +660,7 @@ async def test_concurrent_register_webhook_serializes(
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
     from httpx import ASGITransport, AsyncClient
 
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config as _config
     importlib.reload(_config)

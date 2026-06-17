@@ -1055,7 +1055,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1398,7 +1398,7 @@ from app.models.workspace import Workspace
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1785,7 +1785,7 @@ Expected: `230 passed` (198 baseline + 14 service + 4 token + 8 ingest endpoint 
   - [x] **POST `/api/v1/projects/{id}/log-tokens`** (OWNER): `secrets.token_urlsafe(32)` + bcrypt cost 12, 평문 token 응답 1회만.
   - [x] **DELETE `/api/v1/projects/{id}/log-tokens/{id}`** (OWNER): soft delete (revoked_at = now), 이미 revoked 400, 다른 project token 404.
   - [x] **마이그레이션 신규 없음** — Phase 1 alembic 이 모든 컬럼 (`LogIngestToken / RateLimitWindow / LogEvent + rate_limit_per_minute`) 이미 포함.
-  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`pslog_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
+  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`PSLOG_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
 
 ### 마지막 커밋
 
@@ -1855,7 +1855,7 @@ error-log spec (\`2026-04-26-error-log-design.md\`) 의 Phase 2 본편을 두 su
 - [x] backend **230 tests pass** (198 baseline + 32 신규: 20 service + 4 token + 8 ingest)
 - [ ] e2e — 사용자 직접:
   - curl POST /log-tokens 로 토큰 발급 → 평문 받기
-  - app-chak \`.env\` 에 \`pslog_LOG_INGEST_TOKEN\` + \`pslog_LOG_ENDPOINT\` 설정 → app-chak 재시작
+  - app-chak \`.env\` 에 \`PSLOG_LOG_INGEST_TOKEN\` + \`PSLOG_LOG_ENDPOINT\` 설정 → app-chak 재시작
   - 의도적 \`logger.error("test")\` → pslog DB 의 log_events 테이블에 INSERT 확인
   - gzip 압축 batch + plain JSON batch 둘 다 동작 검증
 

@@ -57,10 +57,10 @@ env:
 	@if [ ! -f backend/.env ]; then \
 		echo "DATABASE_URL=postgresql+asyncpg://$(PG_USER):$(PG_PASSWORD)@localhost:$(PG_PORT)/$(PG_DB)" > backend/.env; \
 		echo "SECRET_KEY=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" >> backend/.env; \
-		echo "pslog_FERNET_KEY=$$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> backend/.env; \
-		echo "pslog_PUBLIC_URL=$(BACKEND_HOST)" >> backend/.env; \
+		echo "PSLOG_FERNET_KEY=$$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> backend/.env; \
+		echo "PSLOG_PUBLIC_URL=$(BACKEND_HOST)" >> backend/.env; \
 		echo "ALLOWED_ORIGINS=http://localhost:5173" >> backend/.env; \
-		echo "✓ backend/.env 생성 (SECRET_KEY / pslog_FERNET_KEY 자동 생성)"; \
+		echo "✓ backend/.env 생성 (SECRET_KEY / PSLOG_FERNET_KEY 자동 생성)"; \
 	else \
 		echo "ℹ backend/.env 이미 있음 — 보존"; \
 	fi

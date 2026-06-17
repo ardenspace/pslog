@@ -11,7 +11,7 @@
 **선행 조건:**
 - pslog main, alembic head = `274c0ed55105` (Phase 4 머지 완료, PR #10)
 - Phase 2 crypto + Phase 4 git_repo_service / sync_service 정상 동작
-- Python 3.12.13 venv (`backend/venv`), `.env` 의 `pslog_FERNET_KEY` 존재
+- Python 3.12.13 venv (`backend/venv`), `.env` 의 `PSLOG_FERNET_KEY` 존재
 - 137 tests baseline (Phase 1+2+3+4)
 
 **중요한 계약:**
@@ -19,7 +19,7 @@
 - **권한 (설계서 §9 + 기존 pslog 패턴)**:
   - GET `/git-settings`, GET `/handoffs` → Project 멤버 누구나 (`get_effective_role` 결과 not None)
   - PATCH `/git-settings`, POST `/git-settings/webhook`, POST `/git-events/{id}/reprocess` → **OWNER 전용** (`can_manage`). PAT / secret / sync 트리거는 민감.
-- **`pslog_PUBLIC_URL` 환경변수 추가**: webhook 등록 시 GitHub 가 callback 할 pslog 의 외부 URL (e.g. `https://pslog.example.com`). `config.py` 에 필드 추가, `.env` 에 명시. webhook url = `f"{pslog_PUBLIC_URL}/api/v1/webhooks/github"`.
+- **`PSLOG_PUBLIC_URL` 환경변수 추가**: webhook 등록 시 GitHub 가 callback 할 pslog 의 외부 URL (e.g. `https://pslog.example.com`). `config.py` 에 필드 추가, `.env` 에 명시. webhook url = `f"{PSLOG_PUBLIC_URL}/api/v1/webhooks/github"`.
 - **`GitPushEvent.before_commit_sha` 컬럼 추가**:
   - 새 alembic revision: 컬럼 + CHECK 제약 (40자 hex full or NULL) — `Task.last_commit_sha` 와 같은 패턴
   - `record_push_event` 가 `payload.before` 를 저장
@@ -29,7 +29,7 @@
   1. Project 의 `git_repo_url` + `github_pat_encrypted` 둘 다 있어야 — 없으면 400
   2. PAT decrypt (실패 시 500)
   3. GitHub `GET /repos/{owner}/{repo}/hooks` 로 기존 webhook 조회
-  4. pslog callback url (= `f"{pslog_PUBLIC_URL}/api/v1/webhooks/github"`) 와 같은 url 의 hook 검색
+  4. pslog callback url (= `f"{PSLOG_PUBLIC_URL}/api/v1/webhooks/github"`) 와 같은 url 의 hook 검색
   5. 새 secret 생성 (`generate_webhook_secret()`) → encrypt → `Project.webhook_secret_encrypted` 저장
   6. 기존 hook 있으면 `PATCH /hooks/{id}` (config.secret 업데이트), 없으면 `POST /hooks`
   7. 응답: `{webhook_id, registered: true, was_existing: bool}`
@@ -73,7 +73,7 @@
 - `backend/app/api/v1/endpoints/webhooks.py` — `_run_sync_in_new_session` 을 export 가능 형태로 (또는 git_settings.py 에서 재정의 — 단순화)
 - `backend/tests/test_github_webhook_service.py` — `before_commit_sha` 검증 1건 추가
 - `backend/tests/test_sync_service.py` — `event.before_commit_sha` 우선 사용 검증 1건 추가
-- `.env` — `pslog_PUBLIC_URL` 추가
+- `.env` — `PSLOG_PUBLIC_URL` 추가
 
 ---
 
@@ -509,7 +509,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)

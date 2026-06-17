@@ -20,7 +20,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -190,7 +190,7 @@ async def test_concurrent_patch_serializes(
     from cryptography.fernet import Fernet as _Fernet
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-    monkeypatch.setenv("pslog_FERNET_KEY", _Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", _Fernet.generate_key().decode())
     import importlib
     import app.config as _config_mod
     importlib.reload(_config_mod)

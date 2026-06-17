@@ -14,7 +14,7 @@
 - Phase 2 crypto 모듈 (`app.core.crypto.encrypt_secret/decrypt_secret`) 재사용
 - Phase 3 parser 모듈 (`parse_plan`, `parse_handoff`) 재사용
 - `httpx` 0.26 설치됨 (`requirements.txt`)
-- Python 3.12.13 venv (`backend/venv`), `.env` 의 `pslog_FERNET_KEY` 존재
+- Python 3.12.13 venv (`backend/venv`), `.env` 의 `PSLOG_FERNET_KEY` 존재
 
 **중요한 계약:**
 - **PAT 저장 (설계서 §9)**: `Project.github_pat_encrypted: bytes | None` — Fernet 마스터 키로 암호화. NULL 이면 unauthenticated 호출 (rate limit 60/h, 공개 repo 만). Phase 1 에서 누락된 컬럼 — 본 phase 에서 alembic 추가.

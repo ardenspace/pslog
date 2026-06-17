@@ -2067,7 +2067,7 @@ Edit `handoffs/main.md` — 파일 상단(`# Handoff: main — @ardensdevspace` 
 - Phase 1 의 단일 alembic revision 은 모든 신규 모델 + 기존 모델 확장 포함.
   downgrade 시 PostgreSQL ALTER TYPE DROP VALUE 미지원으로 TaskEventAction 4값은 잔존 (운영 노트).
 - pg_partman 미도입 — 30일 pre-create 만. Phase 7 진입 시 자동 GC 도입.
-- 다음 phase 의 Webhook secret 검증을 위해 Fernet 마스터 키 (`pslog_FERNET_KEY`) 환경변수 셋업 필요.
+- 다음 phase 의 Webhook secret 검증을 위해 Fernet 마스터 키 (`PSLOG_FERNET_KEY`) 환경변수 셋업 필요.
 - task-automation 설계서의 Phase 4 안정화 후 error-log 의 Phase 2(ingest endpoint) 진입 가능.
 
 ---

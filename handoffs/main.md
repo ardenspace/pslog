@@ -153,7 +153,7 @@
   - [x] **deviation 1 (722928e)**: `validate_event` 가 `emitted_at.replace(tzinfo=None)` 로 tz strip — Pydantic 이 `"...Z"` 를 tz-aware 로 파싱하지만 DB 컬럼이 TIMESTAMP WITHOUT TIME ZONE. real bug fix, validate_event 레벨 (모든 caller 자동 적용).
   - [x] **deviation 2 (722928e)**: `ingest_batch` 도 `token.last_used_at = now` set — verify_token 도 set 하므로 production path 에서 중복. 단순 in-memory overwrite, harmless. 테스트가 verify_token bypass 할 때도 통과.
   - [x] **마이그레이션 신규 없음** — Phase 1 alembic 이 모든 컬럼 (`LogIngestToken / RateLimitWindow / LogEvent + rate_limit_per_minute`) 이미 포함.
-  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`pslog_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
+  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`PSLOG_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
 
 ### 마지막 커밋
 
@@ -503,7 +503,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 ## 2026-04-29
 
 - [x] **Phase 2 완료** — webhook 수신 endpoint + 서명 검증 + reaper (브랜치 `feature/phase-2-webhook-receive`)
-  - [x] Fernet 마스터 키 (`pslog_FERNET_KEY`) + `app/core/crypto.py` (encrypt_secret / decrypt_secret / generate_webhook_secret)
+  - [x] Fernet 마스터 키 (`PSLOG_FERNET_KEY`) + `app/core/crypto.py` (encrypt_secret / decrypt_secret / generate_webhook_secret)
   - [x] `cryptography==44.0.0` 의존성 핀
   - [x] `GitHubPushPayload` Pydantic 스키마 (6 nested models, `extra="ignore"`, `branch` property, `to_commits_json()`)
   - [x] github_webhook_service: HMAC-SHA256 (constant-time) + repo URL 정규화 매칭 (.git/trailing-slash/case 흡수) + GitPushEvent INSERT (UNIQUE 충돌 SAVEPOINT silent skip)
@@ -536,7 +536,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 ### 메모 (2026-04-29 추가)
 
 - **`record_push_event` SAVEPOINT 패턴**: UNIQUE 충돌 시 plan 의 flat rollback 대신 `async with db.begin_nested()` 채택. 이유: 테스트의 함수-스코프 `async_session` 이 외부 ORM 객체(`proj` 등)를 보존해야 함. flat rollback 시 `MissingGreenlet` 발생. 프로덕션은 `Depends(get_db)` 가 요청별 fresh 세션이라 둘 다 정상이지만 SAVEPOINT 가 더 일반적이고 안전함.
-- **Fernet 키 회전 운영 절차 미정**: `pslog_FERNET_KEY` 회전 시 모든 `webhook_secret_encrypted` 가 복호화 불가 → 운영 문서 별도 작성 필요. 첫 프로덕션 배포 전 잠금.
+- **Fernet 키 회전 운영 절차 미정**: `PSLOG_FERNET_KEY` 회전 시 모든 `webhook_secret_encrypted` 가 복호화 불가 → 운영 문서 별도 작성 필요. 첫 프로덕션 배포 전 잠금.
 - **`InvalidToken` 핸들러**: 현재 endpoint 가 `cryptography` 직접 import. Phase 4 sync_service 진입 시 service 레이어로 wrapper 옮길지 검토 (router 가 외부 라이브러리에 직접 의존하지 않게).
 - **알림 정책**: Phase 2 는 webhook 수신만. unknown repo 200 ACK 는 GitHub 재전송 방지 의도 — 운영 시 unknown repo 가 빈번하면 webhook 등록 실수 의심. log 모니터링 기준 추가 필요.
 - **alembic + python logging 함정**: `alembic.ini` 의 `[loggers]` 섹션은 `disable_existing_loggers=True` 기본값 — `app.*` 로거 silent disable. 본 phase 에서 conftest 회피 추가. 후속 plan 작성 시 logging 단위 테스트는 이 패턴 주의.
@@ -583,7 +583,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 - **`mapped_column(default=X)` Python init-time 미적용**: SQLAlchemy 2.0 `default=`는 INSERT 시점만 주입. Python `__init__` 시점엔 None. 우리 default 검증 테스트(Project/Task/LogIngestToken/ErrorGroup) 통과 위해 `__init__` override 패턴 추가 (`kwargs.setdefault`). plan 작성 시 SQLAlchemy 의미 혼동했던 부분 — 후속 plan 작성 시 주의.
 - **pg_partman 미도입**: 30일 pre-create 만. Phase 7 진입 시 일별 자동 GC 도입.
 - **Python 3.12.13 venv (homebrew python@3.12)**: 맥미니에 처음 pslog 백엔드 셋업. `backend/runtime.txt` 의 `python-3.12.12` 와 정합. `requirements.txt` 핀 그대로 (pydantic 2.5.3 + sqlalchemy 2.0.25 등). Python 3.14 시도 시 pydantic-core/greenlet 빌드 실패 — 3.12 권장.
-- **Phase 2 진입 전 Fernet 마스터 키 환경변수**: `pslog_FERNET_KEY` 셋업 필요 (webhook_secret_encrypted 복호화).
+- **Phase 2 진입 전 Fernet 마스터 키 환경변수**: `PSLOG_FERNET_KEY` 셋업 필요 (webhook_secret_encrypted 복호화).
 - **task-automation Phase 4 안정화 후** error-log Phase 2(ingest endpoint) 진입 가능 (선행 의존: Handoff/Task의 commit_sha join key 안정 필요).
 
 ---
@@ -635,7 +635,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 - **archived task join 정책 (PR 리뷰 결정)**: `Task.archived_at IS NOT NULL` row 도 LogEvent git 컨텍스트 join 에 포함, UI 에서 `(archived)` 배지 — Phase 4 GitContextPanel 구현 시 반영.
 - **app-chak self-hosted runner Docker 이슈**: `~/.docker/config.json` 의 `credsStore: "desktop"` 가 비대화형 launchd 세션에서 keychain unlock 실패. 제거 + URL inline `x-access-token:$GITHUB_TOKEN` 으로 우회. pslog 본체도 self-hosted runner 가면 동일 함정 — 운영 노트 참고.
 - **pslog_log_handler `exact_secrets` 패턴**: app-chak 은 `JWT_SECRET_KEY` + Google/Kakao/OpenWeather/Solar/Places API 키 6종을 통째로 PIIFilter 에 넣음. pslog 본체도 동일 패턴 적용 권고.
-- **pslog 측 ingest endpoint** (`/api/v1/log-ingest`) 미구현 상태 — app-chak 은 `pslog_LOG_ENDPOINT` 비워둬서 핸들러 자동 비활성. Phase 2 진입 후 e2e 검증.
+- **pslog 측 ingest endpoint** (`/api/v1/log-ingest`) 미구현 상태 — app-chak 은 `PSLOG_LOG_ENDPOINT` 비워둬서 핸들러 자동 비활성. Phase 2 진입 후 e2e 검증.
 - **2026-05-02~03 주말 확장 기획 회의** — 회의 후 app-chak `PLAN.md` 에 마스터 태스크 추가, pslog 측에서 sync 동작 실제 테스트 가능.
 
 ---

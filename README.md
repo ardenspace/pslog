@@ -56,7 +56,7 @@ make setup
 
 이걸로 다음이 한 번에 됨:
 - `backend/venv` 생성 + dev deps 설치
-- `backend/.env` 자동 생성 (SECRET_KEY / pslog_FERNET_KEY 랜덤)
+- `backend/.env` 자동 생성 (SECRET_KEY / PSLOG_FERNET_KEY 랜덤)
 - `frontend/.env.local` 자동 생성 (`VITE_API_URL` 가 backend port 가리킴)
 - `pslog-postgres` Docker 컨테이너 5433 에 띄움
 - `alembic upgrade head`
@@ -104,7 +104,7 @@ docker run -d --name pslog-postgres \
 
 # 2. backend env (template: backend/.env.example)
 cp backend/.env.example backend/.env
-# SECRET_KEY / pslog_FERNET_KEY 채우기
+# SECRET_KEY / PSLOG_FERNET_KEY 채우기
 
 # 3. backend
 cd backend
@@ -159,14 +159,14 @@ alembic downgrade -1
 |---|---|---|
 | `DATABASE_URL` | backend/.env | PostgreSQL async URL (asyncpg driver) |
 | `SECRET_KEY` | backend/.env | JWT 서명. `secrets.token_urlsafe(32)` |
-| `pslog_FERNET_KEY` | backend/.env | Webhook secret / GitHub PAT 암호화. `Fernet.generate_key()` |
-| `pslog_PUBLIC_URL` | backend/.env | webhook callback URL (GitHub 가 호출). 로컬: `http://localhost:8081` / 운영: Cloudflare Tunnel URL |
+| `PSLOG_FERNET_KEY` | backend/.env | Webhook secret / GitHub PAT 암호화. `Fernet.generate_key()` |
+| `PSLOG_PUBLIC_URL` | backend/.env | webhook callback URL (GitHub 가 호출). 로컬: `http://localhost:8081` / 운영: Cloudflare Tunnel URL |
 | `ALLOWED_ORIGINS` | backend/.env | CORS — frontend origin (default `http://localhost:5173`) |
 | `VITE_API_URL` | frontend/.env.local | backend API base URL (default `http://localhost:8081/api/v1`) |
 
 ## 배포
 
-운영은 **이 호스트의 docker compose** 로 돌린다 (Railway/Render PaaS 아님 — repo 의 `render.yaml`/`netlify.toml` 은 대안 설정일 뿐 현재 활성 경로가 아님). 외부 노출은 **Cloudflare Tunnel** 이 공개 도메인 → `localhost:8081` 로 매핑 (`FORPS_PUBLIC_URL`, GitHub webhook 이 이 URL 로 들어옴).
+운영은 **이 호스트의 docker compose** 로 돌린다 (Railway/Render PaaS 아님 — repo 의 `render.yaml`/`netlify.toml` 은 대안 설정일 뿐 현재 활성 경로가 아님). 외부 노출은 **Cloudflare Tunnel** 이 공개 도메인 → `localhost:8081` 로 매핑 (`PSLOG_PUBLIC_URL`, GitHub webhook 이 이 URL 로 들어옴).
 
 > ⚠️ **자동 배포 아님.** main 에 push 해도 컨테이너는 그대로다 (CI/webhook 없음). 새 코드를 반영하려면 **이 호스트에서 직접** 아래 명령을 쳐야 한다.
 
@@ -181,8 +181,8 @@ make ps        # 컨테이너 상태
 
 - `make restart` = `docker compose up -d --build backend` — **현재 체크아웃된 코드**(`./backend`)로 이미지 재빌드.
 - 컨테이너 시작 시 `alembic upgrade head` → uvicorn(:8081) 순으로 자동 실행 (`backend/Dockerfile` CMD). 즉 **마이그레이션은 배포 때 알아서 적용**된다.
-- postgres 데이터는 `forps_pgdata` named volume 에 영속. `make clean` 은 volume 까지 삭제(데이터 소실)이므로 주의.
-- 운영 환경변수는 `backend/.env` 가 컨테이너에 그대로 주입된다 (`DATABASE_URL` 만 compose 가 internal network 용으로 override). `FORPS_FERNET_KEY` 가 비면 부팅 실패하니 반드시 채울 것.
+- postgres 데이터는 `pslog_pgdata` named volume 에 영속. `make clean` 은 volume 까지 삭제(데이터 소실)이므로 주의.
+- 운영 환경변수는 `backend/.env` 가 컨테이너에 그대로 주입된다 (`DATABASE_URL` 만 compose 가 internal network 용으로 override). `PSLOG_FERNET_KEY` 가 비면 부팅 실패하니 반드시 채울 것.
 
 ### 프론트엔드 (별도 호스트)
 

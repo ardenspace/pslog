@@ -4,7 +4,7 @@
 
 **Goal:** GitHub push webhook 수신 endpoint 구축 — 프로젝트별 Fernet 암호화 secret으로 서명 검증, GitPushEvent INSERT만 (멱등성), 부팅 시 미처리 이벤트 회수 reaper. 실제 처리 로직(파싱·sync)은 Phase 4.
 
-**Architecture:** Fernet 마스터 키(`pslog_FERNET_KEY`)로 프로젝트별 webhook secret 암복호화 → `X-Hub-Signature-256` HMAC 검증 → `GitPushEvent` raw 보존(UNIQUE `project_id+head_commit_sha` 멱등). FastAPI lifespan에 reaper task hook — `processed_at IS NULL AND received_at < now() - 5min` 회수. Process callback은 pluggable, Phase 2에는 no-op stub만 wired.
+**Architecture:** Fernet 마스터 키(`PSLOG_FERNET_KEY`)로 프로젝트별 webhook secret 암복호화 → `X-Hub-Signature-256` HMAC 검증 → `GitPushEvent` raw 보존(UNIQUE `project_id+head_commit_sha` 멱등). FastAPI lifespan에 reaper task hook — `processed_at IS NULL AND received_at < now() - 5min` 회수. Process callback은 pluggable, Phase 2에는 no-op stub만 wired.
 
 **Tech Stack:** FastAPI 0.109, SQLAlchemy 2.0.25 async, asyncpg, `cryptography` (Fernet), pytest 8.3 + testcontainers PG 16.
 
@@ -111,7 +111,7 @@ from app.core.crypto import (
 
 def _set_master_key(monkeypatch: pytest.MonkeyPatch) -> str:
     key = Fernet.generate_key().decode()
-    monkeypatch.setenv("pslog_FERNET_KEY", key)
+    monkeypatch.setenv("PSLOG_FERNET_KEY", key)
     # config singleton reload — settings reads env at instantiation
     import importlib
     import app.config
@@ -133,7 +133,7 @@ def test_decrypt_with_wrong_master_key_raises(monkeypatch: pytest.MonkeyPatch):
     blob = encrypt_secret("hello")
 
     # rotate to a different master key
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -175,14 +175,14 @@ Expected: ImportError (`app.core.crypto` 모듈 없음)
 `.env` 파일이 없으면 임시로 생성:
 ```bash
 cd /Users/arden/Documents/ardensdevspace/pslog/backend
-python -c "from cryptography.fernet import Fernet; print('pslog_FERNET_KEY=' + Fernet.generate_key().decode())" >> .env
+python -c "from cryptography.fernet import Fernet; print('PSLOG_FERNET_KEY=' + Fernet.generate_key().decode())" >> .env
 ```
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add backend/requirements.txt backend/app/config.py
-git commit -m "feat(phase2): cryptography 의존성 + pslog_FERNET_KEY 설정"
+git commit -m "feat(phase2): cryptography 의존성 + PSLOG_FERNET_KEY 설정"
 ```
 
 ---
@@ -201,7 +201,7 @@ Create `backend/app/core/crypto.py`:
 """Fernet 마스터 키 기반 secret 암복호화.
 
 설계서: 2026-04-26-ai-task-automation-design.md §9
-- 마스터 키: pslog_FERNET_KEY 환경변수 (32-byte url-safe base64)
+- 마스터 키: PSLOG_FERNET_KEY 환경변수 (32-byte url-safe base64)
 - 프로젝트별 webhook secret을 이 마스터 키로 암호화하여 Project.webhook_secret_encrypted 에 저장
 - 키 회전 절차는 별도 운영 문서
 """
@@ -919,8 +919,8 @@ FIXTURE = (Path(__file__).parent / "fixtures" / "github_push_payload.json").read
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    """pslog_FERNET_KEY + DB override 적용한 ASGI 클라이언트."""
-    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
+    """PSLOG_FERNET_KEY + DB override 적용한 ASGI 클라이언트."""
+    monkeypatch.setenv("PSLOG_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1667,7 +1667,7 @@ Expected: Phase 1 (41 tests) + Phase 2 신규 테스트 모두 pass
 ```bash
 cd /Users/arden/Documents/ardensdevspace/pslog/backend
 source venv/bin/activate
-# .env 의 pslog_FERNET_KEY 가 설정돼 있어야
+# .env 의 PSLOG_FERNET_KEY 가 설정돼 있어야
 uvicorn app.main:app --host 127.0.0.1 --port 8000 &
 SERVER_PID=$!
 sleep 3
@@ -1692,7 +1692,7 @@ Expected: `/health` → `{"status":"ok"}`, webhook endpoint → 400 (payload 깨
 ## YYYY-MM-DD
 
 - [x] **Phase 2 완료** — webhook 수신 endpoint + 서명 검증 + reaper
-  - [x] Fernet 마스터 키 (`pslog_FERNET_KEY`) + crypto 모듈 (encrypt/decrypt/generate)
+  - [x] Fernet 마스터 키 (`PSLOG_FERNET_KEY`) + crypto 모듈 (encrypt/decrypt/generate)
   - [x] GitHubPushPayload Pydantic 스키마 + branch property
   - [x] github_webhook_service: HMAC 검증 (constant-time) + repo URL 정규화 매칭 + GitPushEvent INSERT (멱등성)
   - [x] commits_truncated 플래그 (len >= 20)

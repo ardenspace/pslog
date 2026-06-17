@@ -389,7 +389,7 @@ abc1234 — 로그인 폼 검증 로직
 ## 9. 보안
 
 - **Webhook 서명 검증**: 프로젝트별 `webhook_secret` (Fernet 암호화 저장), `X-Hub-Signature-256` HMAC 검증. 자동 webhook 등록 시 32-byte 랜덤 생성. 한 프로젝트 secret 유출이 다른 프로젝트로 전파되지 않음.
-- **Fernet 마스터 키**: `pslog_FERNET_KEY` 환경변수, 맥미니의 시스템 keychain 또는 `/etc/pslog/secrets/`에 0400 권한으로 보관. 키 회전 절차는 별도 운영 문서.
+- **Fernet 마스터 키**: `PSLOG_FERNET_KEY` 환경변수, 맥미니의 시스템 keychain 또는 `/etc/pslog/secrets/`에 0400 권한으로 보관. 키 회전 절차는 별도 운영 문서.
 - **GitHub PAT**: Project별로 Fernet 암호화 저장 (기존 pslog 패턴 따름)
 - **Cloudflare Tunnel**: 외부 노출은 기존 터널 재사용, 직접 IP 노출 없음
 - **Ollama**: localhost(맥미니) 내부 통신만, 외부 접근 차단

@@ -1,7 +1,7 @@
 """Fernet 마스터 키 기반 secret 암복호화.
 
 설계서: 2026-04-26-ai-task-automation-design.md §9
-- 마스터 키: pslog_FERNET_KEY 환경변수 (32-byte url-safe base64)
+- 마스터 키: PSLOG_FERNET_KEY 환경변수 (32-byte url-safe base64)
 - 프로젝트별 webhook secret을 이 마스터 키로 암호화하여 Project.webhook_secret_encrypted 에 저장
 - 키 회전 절차는 별도 운영 문서
 """
