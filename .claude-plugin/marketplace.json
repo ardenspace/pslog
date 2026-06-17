@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "pslog",
+  "description": "pslog 플랫폼이 배포하는 워크플로 스킬 마켓플레이스",
+  "version": "0.1.0",
+  "owner": { "name": "ardenspace" },
+  "plugins": [
+    {
+      "name": "pslog-workflow",
+      "source": "./plugins/pslog-workflow",
+      "description": "task→spec/brief→plan→코드 + 단계별 사람 승인 워크플로",
+      "category": "productivity",
+      "strict": true
+    }
+  ]
+}
