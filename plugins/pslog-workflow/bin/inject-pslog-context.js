@@ -14,9 +14,11 @@ if (fs.existsSync(planPath)) {
     hookSpecificOutput: {
       hookEventName: "SessionStart",
       additionalContext:
-        "이 프로젝트는 pslog-workflow로 관리된다. 사용자가 '내 할 일/다음 작업/뭐 하지' 등 task를 묻거나 " +
-        "코드 작성에 들어가면, 반드시 pslog-workflow 스킬(/pslog-workflow:pslog-workflow)을 호출해 " +
-        "무게 게이트(brief vs spec→plan)와 단계별 사람 승인 흐름을 따른다.",
+        "이 프로젝트는 pslog-workflow 플러그인으로 관리된다. 두 스킬을 쓴다: " +
+        "(1) 새 feature 아이디어/기획에 들어가면 → pslog-planning 스킬(/pslog-workflow:pslog-planning) — " +
+        "5렌즈 기획 → 실행계획.md → PLAN.md 분해. " +
+        "(2) PLAN.md의 task 하나를 잡아 코드로 옮기면 → pslog-workflow 스킬(/pslog-workflow:pslog-workflow) — " +
+        "무게 게이트(brief vs spec→plan) → 코드 → 검증. 각 단계 사람 승인 흐름을 따른다.",
     },
   };
   process.stdout.write(JSON.stringify(output));
