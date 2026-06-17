@@ -190,3 +190,11 @@ def test_parse_plan_title_with_at_in_text_does_not_become_assignee():
     t = plan.tasks[0]
     assert t.assignee == "real_user"
     assert "@bot" in t.title
+
+
+def test_parse_plan_detects_deep_marker():
+    text = "## 태스크\n- [ ] [task-007] (deep) 결제 재시도 — @me — `x.py`\n- [ ] [task-008] 오타 — @me\n"
+    parsed = parse_plan(text)
+    by_id = {t.external_id: t for t in parsed.tasks}
+    assert by_id["task-007"].deep is True
+    assert by_id["task-008"].deep is False
