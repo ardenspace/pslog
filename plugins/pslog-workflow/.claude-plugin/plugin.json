@@ -3,7 +3,7 @@
   "name": "pslog-workflow",
   "displayName": "pslog Workflow",
   "version": "0.1.0",
-  "description": "pslog로 관리되는 프로젝트에서 할당된 task를 무게에 맞는 준비 문서(brief 또는 spec→plan)로 탄탄하게 실현하고, 각 단계마다 사람 승인을 받는 워크플로 스킬.",
+  "description": "pslog로 관리되는 프로젝트의 기획~구현 워크플로. pslog-planning(feature 아이디어 → 실행계획 → PLAN.md 분해) + pslog-workflow(PLAN task → 무게 게이트 → 코드), 각 단계 사람 승인.",
   "author": { "name": "ardenspace" },
   "homepage": "https://github.com/ardenspace/pslog",
   "repository": "https://github.com/ardenspace/pslog",
