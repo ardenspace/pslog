@@ -95,7 +95,7 @@ def format_drift_alert(newly_opened: list[Drift]) -> str | None:
     """신규 OPEN 드리프트 목록 → Discord 알림 문자열. 빈 목록이면 None."""
     if not newly_opened:
         return None
-    lines = ["⚠️ **forps 드리프트 감지**"]
+    lines = ["⚠️ **pslog 드리프트 감지**"]
     for d in newly_opened:
         lines.append(f"• [{_TYPE_LABEL.get(d.type, d.type.value)}] {d.branch} — {d.detail}")
     return "\n".join(lines)

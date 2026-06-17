@@ -151,7 +151,7 @@ async def process_event(
             try:
                 await db.refresh(project)
                 content = (
-                    f"⚠️ **forps sync 실패** — {project_name}\n"
+                    f"⚠️ **pslog sync 실패** — {project_name}\n"
                     f"branch: `{event_branch}`\n"
                     f"commit: `{event_head_sha[:7]}`\n"
                     f"error: ```{error_msg[:500]}```"

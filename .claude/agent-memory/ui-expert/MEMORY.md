@@ -1,16 +1,16 @@
 # UI Expert Agent Memory
 
 ## Project Overview
-- B2B task management app: **forps**
+- B2B task management app: **pslog**
 - Stack: React 19, TypeScript 5+, Tailwind CSS, shadcn/ui, TanStack Query, Zustand
 - Package manager: bun
-- Frontend root: `/Users/arden/Documents/dev/forps/frontend/src/`
+- Frontend root: `/Users/arden/Documents/dev/pslog/frontend/src/`
 
 ## Layout Architecture
 - `DashboardPage.tsx`: `h-screen flex flex-col overflow-hidden` root, fixed header + flex body
 - Body uses `flex flex-1 overflow-hidden` with sidebar (`w-56`) + main (`flex-1 overflow-auto`)
 - Header height context: `h-screen` on root + `flex-shrink-0` header = natural fit, no calc needed
-- Main page: `/Users/arden/Documents/dev/forps/frontend/src/pages/DashboardPage.tsx`
+- Main page: `/Users/arden/Documents/dev/pslog/frontend/src/pages/DashboardPage.tsx`
 
 ## Neo-Brutalism Design Tokens (canonical — applied across all components)
 

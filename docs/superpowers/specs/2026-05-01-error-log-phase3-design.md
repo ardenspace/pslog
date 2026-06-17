@@ -6,7 +6,7 @@
 
 **Goal**: error-log spec Phase 3 (fingerprint + ErrorGroup) + Phase 2b 의 reaper 합본 + **B-lite scope** 의 신규 fingerprint Discord 알림 1종. Phase 2a 가 깐 raw LogEvent 인입 위에 그룹화 / 자동 status 전이 / 재발 감지 / 사용자 알림까지 — task-automation 의 핵심 가치 (에러 ↔ git 컨텍스트 추적) 의 그룹화 절반 완성.
 
-**선행**: forps `main` = `90cce78` (Error-log Phase 2a PR #16 머지 직후). backend tests 230 baseline. 마이그레이션 신규 없음 — Phase 1 alembic 이 모든 모델 + 인덱스 (`idx_log_unfingerprinted` partial 포함) 이미 포함.
+**선행**: pslog `main` = `90cce78` (Error-log Phase 2a PR #16 머지 직후). backend tests 230 baseline. 마이그레이션 신규 없음 — Phase 1 alembic 이 모든 모델 + 인덱스 (`idx_log_unfingerprinted` partial 포함) 이미 포함.
 
 ---
 
@@ -29,7 +29,7 @@
 - log_gc_service (파티션 DROP, RateLimitWindow GC) — Phase 7.
 - Frontend — Phase 5 통합.
 
-본 phase 머지 후 e2e 가능: app-chak 의 logger.error → forps `LogEvent` INSERT → BackgroundTask 가 fingerprint + ErrorGroup UPSERT → 신규 fingerprint 면 Discord 알림 1회. dogfooding 즉시.
+본 phase 머지 후 e2e 가능: app-chak 의 logger.error → pslog `LogEvent` INSERT → BackgroundTask 가 fingerprint + ErrorGroup UPSERT → 신규 fingerprint 면 Discord 알림 1회. dogfooding 즉시.
 
 ---
 
@@ -37,7 +37,7 @@
 
 ### 2.1. fingerprint 정규화 6 규칙 (spec §4.1)
 
-1. **절대경로 → 상대경로**: forps `.env` 의 `APP_PROJECT_ROOT` (기본 `"backend/"`) 우선 strip. 매칭 안 되면 휴리스틱 — 첫 `backend/` 또는 `src/` segment 찾아 그 이전 strip. 그것도 안 되면 원본 그대로.
+1. **절대경로 → 상대경로**: pslog `.env` 의 `APP_PROJECT_ROOT` (기본 `"backend/"`) 우선 strip. 매칭 안 되면 휴리스틱 — 첫 `backend/` 또는 `src/` segment 찾아 그 이전 strip. 그것도 안 되면 원본 그대로.
 2. **line number 제거**: stack_frames 의 `lineno` fingerprint 입력에서 제외.
 3. **메모리 주소 마스킹**: regex `0x[0-9a-f]+` → `0xADDR`. 함수명 + exception_message 양쪽 적용.
 4. **함수명 유지**: `<lambda>`, `<listcomp>`, `<genexpr>` 도 stable 이라 포함.
@@ -523,7 +523,7 @@ async def ingest_logs(
     background_tasks: BackgroundTasks,
     authorization: str | None = Header(default=None),
     content_encoding: str | None = Header(default=None),
-    x_forps_dropped_since_last: int | None = Header(default=None, alias="X-Forps-Dropped-Since-Last"),
+    x_pslog_dropped_since_last: int | None = Header(default=None, alias="X-pslog-Dropped-Since-Last"),
     db: AsyncSession = Depends(get_db),
 ):
     # ... 기존 토큰/gzip/json 처리 ...
@@ -531,7 +531,7 @@ async def ingest_logs(
     accepted, rejected, accepted_ids = await log_ingest_service.ingest_batch(
         db, token=token,
         payload_dict=payload,
-        dropped_since_last=x_forps_dropped_since_last,
+        dropped_since_last=x_pslog_dropped_since_last,
     )
 
     # ERROR↑ event 만 BackgroundTask 큐
@@ -645,7 +645,7 @@ class Settings(BaseSettings):
     app_project_root: str = "backend/"
 ```
 
-`.env.example` 에 `APP_PROJECT_ROOT="backend/"` 항목 추가 (forps 측 환경변수 — app-chak 와 별개).
+`.env.example` 에 `APP_PROJECT_ROOT="backend/"` 항목 추가 (pslog 측 환경변수 — app-chak 와 별개).
 
 ---
 
@@ -702,11 +702,11 @@ Breakdown: 8 (fingerprint_service) + 6 (error_group_service) + 4 (fingerprint_pr
 
 ### 4.3. e2e (사용자, PR 머지 전)
 
-- forps dev server 재시작 → log_fingerprint_reaper 부팅 hook 정상 (logger 메시지 확인)
-- app-chak 의 `.env` 의 `FORPS_LOG_INGEST_TOKEN` 설정된 상태 (Phase 2a 머지 후 e2e 가능)
-- 의도적 `logger.error("test new error")` from app-chak → forps `log_events` INSERT 후 BackgroundTask 가 fingerprint + ErrorGroup UPSERT
-- forps DB 직접 SQL — `SELECT * FROM error_groups` → 1 row, status=OPEN, fingerprint 결정성 확인
-- forps Discord 채널 — 🆕 새 에러 알림 1회 확인
+- pslog dev server 재시작 → log_fingerprint_reaper 부팅 hook 정상 (logger 메시지 확인)
+- app-chak 의 `.env` 의 `pslog_LOG_INGEST_TOKEN` 설정된 상태 (Phase 2a 머지 후 e2e 가능)
+- 의도적 `logger.error("test new error")` from app-chak → pslog `log_events` INSERT 후 BackgroundTask 가 fingerprint + ErrorGroup UPSERT
+- pslog DB 직접 SQL — `SELECT * FROM error_groups` → 1 row, status=OPEN, fingerprint 결정성 확인
+- pslog Discord 채널 — 🆕 새 에러 알림 1회 확인
 - 같은 에러 다시 던지기 → ErrorGroup event_count++, 알림 안 옴 (cooldown)
 - 다른 에러 던지기 → 새 ErrorGroup + 새 알림
 
@@ -715,7 +715,7 @@ Breakdown: 8 (fingerprint_service) + 6 (error_group_service) + 4 (fingerprint_pr
 ## 5. Decision Log
 
 - **Scope = B-lite** (옵션 B-lite vs A vs B): A + 신규 fingerprint 1종 알림. 머지 즉시 사용자 가치 (Discord 알림) + scope 작음 + 채널 분리 결정 미루기 가능. spike / regression 은 Phase 6 본편 (메모리 카운터 + 30분 cooldown burst 정책 통합 디자인).
-- **APP_PROJECT_ROOT** (옵션 A vs B vs C): forps `.env` env var 우선 + 휴리스틱 fallback. 향후 멀티 프로젝트 layout 다양해지면 Project 컬럼 추가.
+- **APP_PROJECT_ROOT** (옵션 A vs B vs C): pslog `.env` env var 우선 + 휴리스틱 fallback. 향후 멀티 프로젝트 layout 다양해지면 Project 컬럼 추가.
 - **reaper 트리거** (옵션 A vs B vs C): lifespan hook 1회. push_event_reaper 패턴 그대로. cron 안 함 (BackgroundTask 안정 + reaper 회수로 충분).
 - **자동 status 전이만 (사용자 액션 미포함)**: PATCH `/errors/{group_id}` (resolve/ignore/reopen) 은 Phase 5 UI 와 함께. 본 phase 는 RESOLVED → REGRESSED 자동 전이만.
 - **알림 발송 시점 — commit 후**: fingerprint_processor 의 `db.commit()` 후 `notify_new_error` 호출. DB 일관 상태에서 발송 (Phase 6 학습). 알림 자체 commit (`last_alerted_new_at = now`) 은 alert_service 안에서.

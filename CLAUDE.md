@@ -1,4 +1,4 @@
-# forps (B2B Task Management & Collaboration Tool)
+# pslog (B2B Task Management & Collaboration Tool)
 
 ## Tech Stack
 - **Backend**: FastAPI 0.115+, PostgreSQL, SQLAlchemy 2.0+ (async), Alembic, Pydantic v2

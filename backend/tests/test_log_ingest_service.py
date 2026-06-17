@@ -336,7 +336,7 @@ async def test_ingest_batch_partial_success(async_session: AsyncSession, caplog)
 async def test_ingest_batch_dropped_header_logs_warning(
     async_session: AsyncSession, caplog,
 ):
-    """X-Forps-Dropped-Since-Last 받으면 logger.warning."""
+    """X-pslog-Dropped-Since-Last 받으면 logger.warning."""
     import logging
     proj, token, _ = await _seed_project_and_token(async_session)
 

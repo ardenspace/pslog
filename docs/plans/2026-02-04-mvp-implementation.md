@@ -1908,7 +1908,7 @@ export function DashboardPage() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">forps</h1>
+            <h1 className="text-xl font-bold">pslog</h1>
             {/* Workspace selector */}
             <select
               value={selectedWorkspaceId || ''}

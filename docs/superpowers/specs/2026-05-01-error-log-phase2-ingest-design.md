@@ -4,9 +4,9 @@
 
 **Date**: 2026-05-01
 
-**Goal**: error-log spec (`2026-04-26-error-log-design.md`) 의 Phase 2 본편을 두 sub-phase 로 분할한 첫 번째 — **2a: 토큰 API + ingest endpoint + rate limit**. app-chak 의 Phase 0 handler 가 미사용 상태로 대기 중 (`FORPS_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 동작.
+**Goal**: error-log spec (`2026-04-26-error-log-design.md`) 의 Phase 2 본편을 두 sub-phase 로 분할한 첫 번째 — **2a: 토큰 API + ingest endpoint + rate limit**. app-chak 의 Phase 0 handler 가 미사용 상태로 대기 중 (`pslog_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 동작.
 
-**선행**: forps `main` = `7e51c20` (Phase 6 PR #15 머지 직후). backend tests 198 baseline. alembic head = `7c6e0c9bb915`. **마이그레이션 신규 없음** — 모든 컬럼 Phase 1 에 포함됨.
+**선행**: pslog `main` = `7e51c20` (Phase 6 PR #15 머지 직후). backend tests 198 baseline. alembic head = `7c6e0c9bb915`. **마이그레이션 신규 없음** — 모든 컬럼 Phase 1 에 포함됨.
 
 ---
 
@@ -28,7 +28,7 @@
 - Discord 알림 (Phase 6 of error-log spec)
 - `GET /log-tokens` 토큰 목록 조회 (Phase 5 LogTokensPage 와 함께)
 
-본 phase 머지 후 e2e 가능: forps API 로 토큰 발급 → app-chak `.env` 의 `FORPS_LOG_INGEST_TOKEN` 설정 → handler 자동 활성 → LogEvent 가 forps DB 에 들어옴 (fingerprint=NULL).
+본 phase 머지 후 e2e 가능: pslog API 로 토큰 발급 → app-chak `.env` 의 `pslog_LOG_INGEST_TOKEN` 설정 → handler 자동 활성 → LogEvent 가 pslog DB 에 들어옴 (fingerprint=NULL).
 
 ---
 
@@ -79,7 +79,7 @@
 - `Authorization: Bearer <key_id>.<secret>` (필수)
 - `Content-Type: application/json` (필수)
 - `Content-Encoding: gzip` (선택 — 본문 gzip 압축 시)
-- `X-Forps-Dropped-Since-Last: <int>` (선택 — handler 가 drop 발생 시만)
+- `X-pslog-Dropped-Since-Last: <int>` (선택 — handler 가 drop 발생 시만)
 
 본문 (spec §5.4 wire format 그대로):
 
@@ -130,7 +130,7 @@ DB 컬럼명 = wire 키 이름 (LogEvent 모델 1:1). nullable 필드 (exception
 
 verify_token 성공 시 `token.last_used_at = now()` 설정. 같은 트랜잭션의 ingest_batch 끝에서 `db.commit()` 으로 영속.
 
-### 2.9. `X-Forps-Dropped-Since-Last` 헤더 처리
+### 2.9. `X-pslog-Dropped-Since-Last` 헤더 처리
 
 받으면 `logger.warning("token=%s dropped %d events since last", token.id, dropped)`. 본 phase 는 집계 안 함 (log_health_service 가 후속 phase 에서 추가). 헤더 없으면 무시.
 
@@ -195,7 +195,7 @@ verify_token 성공 시 `token.last_used_at = now()` 설정. 같은 트랜잭션
 - 각 event validate (partial). accepted 만 모아 `insert_events`.
 - token.project_id 사용 (외부 입력 무시 — security).
 - last_used_at 갱신 (verify_token 안에서 set, 여기서 commit).
-- `X-Forps-Dropped-Since-Last` 가 있으면 `logger.warning`.
+- `X-pslog-Dropped-Since-Last` 가 있으면 `logger.warning`.
 
 ### 3.2. Endpoint: `POST /log-ingest`
 
@@ -207,7 +207,7 @@ async def ingest_logs(
     request: Request,
     authorization: str | None = Header(default=None),
     content_encoding: str | None = Header(default=None),
-    x_forps_dropped_since_last: int | None = Header(default=None),
+    x_pslog_dropped_since_last: int | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     """외부 앱(app-chak)이 로그 batch 를 push.
@@ -233,7 +233,7 @@ async def ingest_logs(
         # ingest_batch 가 rate limit + validate + insert + commit 처리
         accepted, rejected = await log_ingest_service.ingest_batch(
             db, token=token, payload_dict=payload,
-            dropped_since_last=x_forps_dropped_since_last,
+            dropped_since_last=x_pslog_dropped_since_last,
         )
     except HTTPException:
         raise
@@ -407,7 +407,7 @@ class LogTokenRevokedResponse(BaseModel):
 5. `validate_event` — version_sha format invalid (short SHA) → reject / "unknown" 정상 / Pydantic schema 위배 (extra 필드) → reject / extra > 4KB → reject
 6. `insert_events` — batch 5건 INSERT 성공, fingerprint NULL 보존
 7. `ingest_batch` partial — 10 events 중 8 valid 2 invalid → accepted=8, rejected=[2건], DB 에 8 행 INSERT, last_used_at 갱신
-8. `ingest_batch` X-Forps-Dropped-Since-Last 헤더 — logger.warning 호출 (caplog 검증)
+8. `ingest_batch` X-pslog-Dropped-Since-Last 헤더 — logger.warning 호출 (caplog 검증)
 
 ### 4.2. `test_log_ingest_endpoint.py` (신규, 8건)
 
@@ -429,10 +429,10 @@ class LogTokenRevokedResponse(BaseModel):
 
 ### 4.4. e2e (사용자, PR 머지 전)
 
-- forps dev server + curl POST /log-tokens 로 토큰 발급 → 평문 받음
-- app-chak 의 `.env` 에 `FORPS_LOG_INGEST_TOKEN={token}` + `FORPS_LOG_ENDPOINT=http://localhost:8081/api/v1/log-ingest` 설정
+- pslog dev server + curl POST /log-tokens 로 토큰 발급 → 평문 받음
+- app-chak 의 `.env` 에 `pslog_LOG_INGEST_TOKEN={token}` + `pslog_LOG_ENDPOINT=http://localhost:8081/api/v1/log-ingest` 설정
 - app-chak 재시작 → handler 자동 활성
-- app-chak 에서 의도적 `logger.error("test")` → forps DB 의 log_events 테이블에 INSERT 확인
+- app-chak 에서 의도적 `logger.error("test")` → pslog DB 의 log_events 테이블에 INSERT 확인
 - gzip 압축 batch 와 plain JSON batch 둘 다 동작 검증
 
 ---

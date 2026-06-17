@@ -9,10 +9,10 @@
 **Tech Stack:** FastAPI 0.115, SQLAlchemy 2.0 async, Pydantic v2, Alembic, React 19 + TypeScript 5, TanStack Query, Tailwind, bun. backend tests: pytest + testcontainers PostgreSQL.
 
 **선행 조건:**
-- forps `main` = `29c7db7` (B2 PR #14 머지 직후), alembic head = `a1b2c3d4e5f6`
+- pslog `main` = `29c7db7` (B2 PR #14 머지 직후), alembic head = `a1b2c3d4e5f6`
 - backend tests baseline = **184 passing**
 - frontend `bun run build` clean, `bun run lint` 8 pre-existing only
-- Python 3.12 venv (`backend/venv` symlink), `.env` 의 `FORPS_FERNET_KEY` 존재
+- Python 3.12 venv (`backend/venv` symlink), `.env` 의 `pslog_FERNET_KEY` 존재
 - spec: `docs/superpowers/specs/2026-05-01-phase-6-discord-notifications-design.md`
 
 **중요한 계약:**
@@ -76,7 +76,7 @@
 - [ ] **Step 1: Baseline 확인**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -192,7 +192,7 @@ Expected: 신규 2건 PASS, 전체 `186 passed` (184 + 2).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications
 git add backend/app/models/project.py backend/alembic/versions/*phase6_discord_counter.py backend/tests/test_phase6_migration.py
 git commit -m "$(cat <<'EOF'
 feat(phase6): Project 모델에 discord_consecutive_failures / discord_disabled_at
@@ -833,7 +833,7 @@ async def process_event(
             try:
                 await db.refresh(project)  # ORM 살리기 — dispatcher 안에서 attribute 접근 안전
                 content = (
-                    f"⚠️ **forps sync 실패** — {project_name}\n"
+                    f"⚠️ **pslog sync 실패** — {project_name}\n"
                     f"branch: `{event_branch}`\n"
                     f"commit: `{event_head_sha[:7]}`\n"
                     f"error: ```{error_msg[:500]}```"
@@ -1298,7 +1298,7 @@ Expected: build clean, no new lint violations (8 pre-existing).
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications
 git add frontend/src/types/git.ts frontend/src/services/api.ts
 git commit -m "$(cat <<'EOF'
 feat(phase6/frontend): types + api.ts — GitSettings 3 필드 + resetDiscord method
@@ -1346,7 +1346,7 @@ Expected: clean.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications
 git add frontend/src/hooks/useGithubSettings.ts
 git commit -m "$(cat <<'EOF'
 feat(phase6/frontend): useResetDiscord hook
@@ -1450,7 +1450,7 @@ Expected: clean. lint 가 `react-hooks/set-state-in-effect` 류 위배 잡으면
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications
 git add frontend/src/components/sidebar/ProjectGitSettingsModal.tsx
 git commit -m "$(cat <<'EOF'
 feat(phase6/frontend): ProjectGitSettingsModal — Discord 섹션 (상태 + 재활성화)
@@ -1472,7 +1472,7 @@ EOF
 - [ ] **Step 1: 전체 backend 회귀**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -1509,7 +1509,7 @@ Expected: build clean, lint 신규 위배 0 (Phase 5b/B2 의 8 pre-existing 그�
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Phase 6 완료 + Phase 7 (선택) 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Phase 6 완료 + Phase 7 (선택) 다음 할 일`
 - 브랜치 base: `29c7db7` (main, B2 PR #14 머지 직후)
 
 ### 다음 (Phase 7 — Gemma 브리핑, 선택)
@@ -1536,7 +1536,7 @@ spec §11 의 마지막 phase. 진입 전 맥미니에서 Gemma 4 26B MoE 추론
 - [ ] **Step 4: handoff + plan + spec commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/phase-6-discord-notifications
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/phase-6-discord-notifications
 git add handoffs/main.md docs/superpowers/plans/2026-05-01-phase-6-discord-notifications.md
 git commit -m "$(cat <<'EOF'
 docs(handoff+plan): Phase 6 완료 + Phase 7 (선택) 다음 할 일

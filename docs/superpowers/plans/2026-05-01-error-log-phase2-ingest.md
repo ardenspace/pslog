@@ -2,14 +2,14 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** error-log spec Phase 2 의 첫 sub-phase — app-chak 의 forps_log_handler 가 forps 에 batch HTTP push 할 수 있도록 토큰 발급/폐기 API + ingest endpoint + rate limit 도입. 본 phase 머지 즉시 e2e 동작 (LogEvent 가 forps DB 에 들어옴, fingerprint=NULL).
+**Goal:** error-log spec Phase 2 의 첫 sub-phase — app-chak 의 pslog_log_handler 가 pslog 에 batch HTTP push 할 수 있도록 토큰 발급/폐기 API + ingest endpoint + rate limit 도입. 본 phase 머지 즉시 e2e 동작 (LogEvent 가 pslog DB 에 들어옴, fingerprint=NULL).
 
 **Architecture:** 8 task 분할 — Pydantic schemas → service 의 6 함수 (4 task: parse_token+verify_token / check_rate_limit / validate_event+insert_events / ingest_batch) → token API (POST/DELETE) → ingest endpoint + router wiring → 최종 회귀/PR. 모델/마이그레이션 신규 X (Phase 1 alembic 이 모든 컬럼 포함). bcrypt cost 12 + asyncio.to_thread 로 event loop block 회피. partial validation 200 + rejected list. token별 rate_limit_per_minute (기본 600) + RateLimitWindow PostgreSQL UPSERT.
 
 **Tech Stack:** FastAPI 0.115, SQLAlchemy 2.0 async, Pydantic v2, bcrypt < 4 (이미 passlib 가 의존), pytest + testcontainers PostgreSQL.
 
 **선행 조건:**
-- forps `main` = `7e51c20` (Phase 6 PR #15 머지 직후)
+- pslog `main` = `7e51c20` (Phase 6 PR #15 머지 직후)
 - alembic head = `7c6e0c9bb915` (Phase 6 컬럼 포함)
 - backend tests baseline = **198 passing**
 - LogIngestToken / RateLimitWindow / LogEvent 모델 + 컬럼 모두 Phase 1 에 포함됨
@@ -25,7 +25,7 @@
 - **Rate limit**: `RateLimitWindow` PRIMARY KEY `(project_id, token_id, window_start)` — 분 truncate. PostgreSQL UPSERT. `event_count + batch_size > token.rate_limit_per_minute` → 429 + `Retry-After: <seconds_until_next_minute>` 헤더.
 - **Soft delete (revoked_at)**: DELETE /log-tokens 가 `revoked_at = now()` 설정. hard delete 안 함 (FK 보존). 이미 revoked 시 400.
 - **last_used_at**: verify_token 성공 시 in-memory 갱신, ingest_batch 의 commit 으로 영속. 같은 트랜잭션.
-- **X-Forps-Dropped-Since-Last 헤더**: 받으면 `logger.warning` 만. 본 phase 는 집계 안 함.
+- **X-pslog-Dropped-Since-Last 헤더**: 받으면 `logger.warning` 만. 본 phase 는 집계 안 함.
 
 ---
 
@@ -63,7 +63,7 @@
 - [ ] **Step 1: Baseline 확인**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -195,7 +195,7 @@ Expected: `198 passed`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest
 git add backend/app/schemas/log_ingest.py backend/app/schemas/log_token.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase2a): Pydantic schemas (log_ingest + log_token)
@@ -442,7 +442,7 @@ Expected: 신규 8 PASS, 전체 `206 passed` (198 + 8).
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest
 git add backend/app/services/log_ingest_service.py backend/tests/test_log_ingest_service.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase2a): log_ingest_service — parse_token + verify_token
@@ -912,7 +912,7 @@ async def test_ingest_batch_partial_success(async_session: AsyncSession, caplog)
 async def test_ingest_batch_dropped_header_logs_warning(
     async_session: AsyncSession, caplog,
 ):
-    """X-Forps-Dropped-Since-Last 받으면 logger.warning."""
+    """X-pslog-Dropped-Since-Last 받으면 logger.warning."""
     import logging
     proj, token, _ = await _seed_project_and_token(async_session)
 
@@ -1010,7 +1010,7 @@ git commit -m "$(cat <<'EOF'
 feat(error-log/phase2a): log_ingest_service — ingest_batch composition
 
 - end-to-end: rate limit → per-event validate (partial) → batch INSERT → commit
-- X-Forps-Dropped-Since-Last 헤더 받으면 logger.warning
+- X-pslog-Dropped-Since-Last 헤더 받으면 logger.warning
 - events 리스트 비어있거나 형식 깨짐 → caller 가 400 매핑하도록 HTTPException raise
 - token.last_used_at + RateLimitWindow + LogEvent 모두 같은 트랜잭션 commit
 - 회귀 2건: partial success (10 중 8 accepted) / dropped header logger.warning
@@ -1055,7 +1055,7 @@ from app.models.workspace import Workspace, WorkspaceRole
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1344,7 +1344,7 @@ Expected: 신규 4 PASS, 전체 `222 passed` (218 + 4).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest
 git add backend/app/api/v1/endpoints/log_tokens.py backend/app/api/v1/router.py backend/tests/test_log_tokens_endpoint.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase2a): POST /log-tokens + DELETE /log-tokens (OWNER)
@@ -1398,7 +1398,7 @@ from app.models.workspace import Workspace
 
 @pytest.fixture()
 async def client_with_db(async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("FORPS_FERNET_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("pslog_FERNET_KEY", Fernet.generate_key().decode())
     import importlib
     import app.config
     importlib.reload(app.config)
@@ -1657,7 +1657,7 @@ async def ingest_logs(
     request: Request,
     authorization: str | None = Header(default=None),
     content_encoding: str | None = Header(default=None),
-    x_forps_dropped_since_last: int | None = Header(default=None, alias="X-Forps-Dropped-Since-Last"),
+    x_pslog_dropped_since_last: int | None = Header(default=None, alias="X-pslog-Dropped-Since-Last"),
     db: AsyncSession = Depends(get_db),
 ):
     """외부 앱이 로그 batch 를 push.
@@ -1694,7 +1694,7 @@ async def ingest_logs(
         accepted, rejected = await log_ingest_service.ingest_batch(
             db, token=token,
             payload_dict=payload,
-            dropped_since_last=x_forps_dropped_since_last,
+            dropped_since_last=x_pslog_dropped_since_last,
         )
     except HTTPException:
         # rate limit 429 / events 빈 list 400 등 그대로 propagate
@@ -1737,7 +1737,7 @@ Expected: 신규 8 PASS, 전체 `230 passed` (222 + 8).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest
 git add backend/app/api/v1/endpoints/log_ingest.py backend/app/api/v1/router.py backend/tests/test_log_ingest_endpoint.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase2a): POST /log-ingest endpoint
@@ -1762,7 +1762,7 @@ EOF
 - [ ] **Step 1: 전체 backend 회귀**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -1785,11 +1785,11 @@ Expected: `230 passed` (198 baseline + 14 service + 4 token + 8 ingest endpoint 
   - [x] **POST `/api/v1/projects/{id}/log-tokens`** (OWNER): `secrets.token_urlsafe(32)` + bcrypt cost 12, 평문 token 응답 1회만.
   - [x] **DELETE `/api/v1/projects/{id}/log-tokens/{id}`** (OWNER): soft delete (revoked_at = now), 이미 revoked 400, 다른 project token 404.
   - [x] **마이그레이션 신규 없음** — Phase 1 alembic 이 모든 컬럼 (`LogIngestToken / RateLimitWindow / LogEvent + rate_limit_per_minute`) 이미 포함.
-  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`FORPS_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
+  - [x] **검증**: backend **230 tests pass** (198 baseline + 32 신규: 14 service + 4 token + 8 ingest endpoint + 6 validate). app-chak handler 가 미사용 상태로 대기 중 (`pslog_LOG_ENDPOINT` 비어있음) — 본 phase 머지 즉시 e2e 가능 (토큰 발급 → app-chak `.env` 설정 → 자동 활성).
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Error-log Phase 2a 완료 + Phase 2b/3 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Error-log Phase 2a 완료 + Phase 2b/3 다음 할 일`
 - 브랜치 base: `7e51c20` (main, Phase 6 PR #15 머지 직후)
 
 ### 다음 (Error-log Phase 2b / Phase 3)
@@ -1818,7 +1818,7 @@ Expected: `230 passed` (198 baseline + 14 service + 4 token + 8 ingest endpoint 
 - [ ] **Step 4: handoff + plan + spec commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase2-ingest
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase2-ingest
 git add handoffs/main.md docs/superpowers/plans/2026-05-01-error-log-phase2-ingest.md
 git commit -m "$(cat <<'EOF'
 docs(handoff+plan): Error-log Phase 2a 완료 + Phase 2b/3 다음 할 일
@@ -1855,8 +1855,8 @@ error-log spec (\`2026-04-26-error-log-design.md\`) 의 Phase 2 본편을 두 su
 - [x] backend **230 tests pass** (198 baseline + 32 신규: 20 service + 4 token + 8 ingest)
 - [ ] e2e — 사용자 직접:
   - curl POST /log-tokens 로 토큰 발급 → 평문 받기
-  - app-chak \`.env\` 에 \`FORPS_LOG_INGEST_TOKEN\` + \`FORPS_LOG_ENDPOINT\` 설정 → app-chak 재시작
-  - 의도적 \`logger.error("test")\` → forps DB 의 log_events 테이블에 INSERT 확인
+  - app-chak \`.env\` 에 \`pslog_LOG_INGEST_TOKEN\` + \`pslog_LOG_ENDPOINT\` 설정 → app-chak 재시작
+  - 의도적 \`logger.error("test")\` → pslog DB 의 log_events 테이블에 INSERT 확인
   - gzip 압축 batch + plain JSON batch 둘 다 동작 검증
 
 ## 다음 (Phase 2b / Phase 3)

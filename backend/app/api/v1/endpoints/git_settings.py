@@ -34,7 +34,7 @@ router = APIRouter(prefix="/projects", tags=["git-settings"])
 
 
 def _public_webhook_url() -> str:
-    base = settings.forps_public_url.rstrip("/")
+    base = settings.pslog_public_url.rstrip("/")
     return f"{base}/api/v1/webhooks/github"
 
 

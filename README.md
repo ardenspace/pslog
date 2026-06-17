@@ -1,4 +1,4 @@
-# forps
+# pslog
 
 B2B 협업 업무 관리 툴 (Task Management & Collaboration Tool)
 
@@ -18,7 +18,7 @@ B2B 협업 업무 관리 툴 (Task Management & Collaboration Tool)
 ## 프로젝트 구조
 
 ```
-forps/
+pslog/
 ├── backend/
 │   ├── app/
 │   │   ├── models/          # DB 모델
@@ -46,7 +46,7 @@ forps/
 
 ## 시작하기
 
-`Makefile` 이 dev 환경 setup 자동화. **app-chak 같은 다른 서비스가 8000/5432 점유 중이어도 충돌 없음** — forps 는 backend 8081 / postgres 5433 default.
+`Makefile` 이 dev 환경 setup 자동화. **app-chak 같은 다른 서비스가 8000/5432 점유 중이어도 충돌 없음** — pslog 는 backend 8081 / postgres 5433 default.
 
 ### 첫 setup (한 번만)
 
@@ -56,9 +56,9 @@ make setup
 
 이걸로 다음이 한 번에 됨:
 - `backend/venv` 생성 + dev deps 설치
-- `backend/.env` 자동 생성 (SECRET_KEY / FORPS_FERNET_KEY 랜덤)
+- `backend/.env` 자동 생성 (SECRET_KEY / pslog_FERNET_KEY 랜덤)
 - `frontend/.env.local` 자동 생성 (`VITE_API_URL` 가 backend port 가리킴)
-- `forps-postgres` Docker 컨테이너 5433 에 띄움
+- `pslog-postgres` Docker 컨테이너 5433 에 띄움
 - `alembic upgrade head`
 - `frontend` deps 설치 (bun)
 
@@ -81,9 +81,9 @@ make frontend    # vite http://localhost:5173
 ```bash
 make migrate     # alembic upgrade head
 make test        # backend pytest + frontend build/lint
-make db-down     # forps-postgres 만 stop (app-chak 안 건드림)
+make db-down     # pslog-postgres 만 stop (app-chak 안 건드림)
 make db-up       # 다시 띄움
-make clean       # forps-postgres 컨테이너 삭제 (volume 은 prune 별도)
+make clean       # pslog-postgres 컨테이너 삭제 (volume 은 prune 별도)
 make help        # 전체 target 목록
 ```
 
@@ -98,13 +98,13 @@ make db-up PG_PORT=5432
 
 ```bash
 # 1. PostgreSQL — app-chak 과 충돌 없는 5433 사용 권장
-docker run -d --name forps-postgres \
-  -e POSTGRES_USER=forps -e POSTGRES_PASSWORD=forps123 -e POSTGRES_DB=forps \
+docker run -d --name pslog-postgres \
+  -e POSTGRES_USER=pslog -e POSTGRES_PASSWORD=pslog123 -e POSTGRES_DB=pslog \
   -p 5433:5432 postgres:16-alpine
 
 # 2. backend env (template: backend/.env.example)
 cp backend/.env.example backend/.env
-# SECRET_KEY / FORPS_FERNET_KEY 채우기
+# SECRET_KEY / pslog_FERNET_KEY 채우기
 
 # 3. backend
 cd backend
@@ -159,8 +159,8 @@ alembic downgrade -1
 |---|---|---|
 | `DATABASE_URL` | backend/.env | PostgreSQL async URL (asyncpg driver) |
 | `SECRET_KEY` | backend/.env | JWT 서명. `secrets.token_urlsafe(32)` |
-| `FORPS_FERNET_KEY` | backend/.env | Webhook secret / GitHub PAT 암호화. `Fernet.generate_key()` |
-| `FORPS_PUBLIC_URL` | backend/.env | webhook callback URL (GitHub 가 호출). 로컬: `http://localhost:8081` / 운영: Cloudflare Tunnel URL |
+| `pslog_FERNET_KEY` | backend/.env | Webhook secret / GitHub PAT 암호화. `Fernet.generate_key()` |
+| `pslog_PUBLIC_URL` | backend/.env | webhook callback URL (GitHub 가 호출). 로컬: `http://localhost:8081` / 운영: Cloudflare Tunnel URL |
 | `ALLOWED_ORIGINS` | backend/.env | CORS — frontend origin (default `http://localhost:5173`) |
 | `VITE_API_URL` | frontend/.env.local | backend API base URL (default `http://localhost:8081/api/v1`) |
 

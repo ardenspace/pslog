@@ -25,10 +25,10 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:5173"
 
     # Crypto (Phase 2 — Fernet 마스터 키)
-    forps_fernet_key: str
+    pslog_fernet_key: str
 
     # Phase 5a — webhook callback URL (GitHub 가 호출할 외부 URL, e.g. Cloudflare Tunnel)
-    forps_public_url: str = "http://localhost:8000"
+    pslog_public_url: str = "http://localhost:8000"
 
     # Phase 3 — fingerprint 정규화: 절대경로→상대경로 strip 시 prefix
     app_project_root: str = "backend/"

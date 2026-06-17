@@ -1,7 +1,7 @@
 """Fernet 마스터 키 기반 secret 암복호화.
 
 설계서: 2026-04-26-ai-task-automation-design.md §9
-- 마스터 키: FORPS_FERNET_KEY 환경변수 (32-byte url-safe base64)
+- 마스터 키: pslog_FERNET_KEY 환경변수 (32-byte url-safe base64)
 - 프로젝트별 webhook secret을 이 마스터 키로 암호화하여 Project.webhook_secret_encrypted 에 저장
 - 키 회전 절차는 별도 운영 문서
 """
@@ -15,7 +15,7 @@ from app.config import settings
 
 def _fernet() -> Fernet:
     """매번 새 Fernet 인스턴스 — settings 변경(테스트 reload) 반영."""
-    return Fernet(settings.forps_fernet_key.encode())
+    return Fernet(settings.pslog_fernet_key.encode())
 
 
 def encrypt_secret(plaintext: str) -> bytes:

@@ -6,7 +6,7 @@
     "active": true,
     "events": ["push"],
     "config": {
-      "url": "https://forps.example.com/api/v1/webhooks/github",
+      "url": "https://pslog.example.com/api/v1/webhooks/github",
       "content_type": "json",
       "insecure_ssl": "0"
     },

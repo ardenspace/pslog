@@ -6,7 +6,7 @@
 
 **Goal**: spec §11 (`2026-04-26-ai-task-automation-design.md`) 의 Phase 6 본편. push 1건 = 알림 1건 요약 (체크 변경 / 롤백 / archived / handoff 누락) + Discord webhook 3회 연속 실패 시 자동 disable + UI 재활성화. B2 의 sync-failure alert 도 같은 dispatcher 통과해 cooldown / disable 정책 통합 적용.
 
-**선행**: forps `main` = `29c7db7` (B2 PR #14 머지 직후). backend tests 184 baseline. alembic head = `a1b2c3d4e5f6`. 새 alembic revision 1건 (Project 2 컬럼 추가).
+**선행**: pslog `main` = `29c7db7` (B2 PR #14 머지 직후). backend tests 184 baseline. alembic head = `a1b2c3d4e5f6`. 새 alembic revision 1건 (Project 2 컬럼 추가).
 
 ---
 
@@ -100,7 +100,7 @@ dispatcher 가 다음 경우 알림 안 함:
 #### Sync failure (B2 그대로, dispatcher 통과로만 변경)
 
 ```
-⚠️ forps sync 실패 — alice's project
+⚠️ pslog sync 실패 — alice's project
 branch: `main`
 commit: `abc1234`
 error: ```RuntimeError: github 502```
@@ -279,7 +279,7 @@ except Exception as exc:
         try:
             await db.refresh(project)  # ORM 살리기 — 이후 dispatcher 안전
             content = (
-                f"⚠️ **forps sync 실패** — {project_name}\n"
+                f"⚠️ **pslog sync 실패** — {project_name}\n"
                 f"branch: `{event_branch}`\n"
                 f"commit: `{event_head_sha[:7]}`\n"
                 f"error: ```{error_msg[:500]}```"
@@ -519,7 +519,7 @@ URL input 의 저장은 기존 `useUpdateGitSettings` 가 처리 — 폼 전체 
 
 ### 5.3. e2e (사용자, PR 머지 전)
 
-- Discord 채널 연결 후 의도적 PLAN.md 변경 push → forps Discord 채널에 push summary 도착
+- Discord 채널 연결 후 의도적 PLAN.md 변경 push → pslog Discord 채널에 push summary 도착
 - handoff 안 만들고 PLAN 만 변경 push → "⚠️ handoff 누락" 줄 포함 알림
 - Discord webhook URL 잘못된 값으로 변경 후 push 3번 → 3번째 후 자동 disable, GitSettings 모달에 "⚠️ 비활성화" 표시
 - 재활성화 버튼 클릭 → counter/disabled_at reset, 다음 push 부터 다시 알림

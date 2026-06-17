@@ -1,4 +1,4 @@
-# forps backend — production-ish image (always-on / docker compose 용)
+# pslog backend — production-ish image (always-on / docker compose 용)
 # dev iteration 은 venv + `make backend` 로 hot reload (Makefile 참조).
 
 FROM python:3.12-slim

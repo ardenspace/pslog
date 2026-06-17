@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CheckItem(BaseModel):
-    """들여쓰기 0 — handoff 섹션의 최상위 체크박스. forps DB 의 Task 상태에 영향."""
+    """들여쓰기 0 — handoff 섹션의 최상위 체크박스. pslog DB 의 Task 상태에 영향."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -17,7 +17,7 @@ class CheckItem(BaseModel):
 
 
 class Subtask(BaseModel):
-    """들여쓰기 ≥ 2 — 직전 최상위 체크박스의 자식. forps DB 미반영, free_notes 보존만."""
+    """들여쓰기 ≥ 2 — 직전 최상위 체크박스의 자식. pslog DB 미반영, free_notes 보존만."""
 
     model_config = ConfigDict(extra="forbid")
 

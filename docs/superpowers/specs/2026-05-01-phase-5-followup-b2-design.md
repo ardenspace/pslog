@@ -6,7 +6,7 @@
 
 **Goal**: Phase 5b handoff 메모에서 트래킹된 frontend 잔여 2건 + 작은 backend 추가 1건을 한 PR 로 닫음. Phase 6 (Discord 알림 통합 — 3 템플릿 + cooldown) 진입 전, 사용자 가시성 (실패 알림 + 누락 표시) 의 minimal viable layer 를 깔아둠.
 
-**선행**: forps `main` = `cd53696` (B1 PR #13 머지 직후). backend tests 175 baseline. alembic head = `a1b2c3d4e5f6`. 마이그레이션 추가 없음.
+**선행**: pslog `main` = `cd53696` (B1 PR #13 머지 직후). backend tests 175 baseline. alembic head = `a1b2c3d4e5f6`. 마이그레이션 추가 없음.
 
 ---
 
@@ -118,7 +118,7 @@ class GitEventSummary(BaseModel):
 **메시지 포맷** (Discord 텍스트, 마크다운):
 
 ```
-⚠️ **forps sync 실패** — {project.name}
+⚠️ **pslog sync 실패** — {project.name}
 branch: `{event.branch}`
 commit: `{event.head_commit_sha[:7]}`
 error: ```{error_msg[:500]}```
@@ -372,8 +372,8 @@ list 50 task → EXISTS 50회 → 각각 unique index lookup (O(log N)). 성능 
 
 ### 5.3. e2e (사용자, PR 머지 전)
 
-- forps dev server + ngrok/cloudflared 로 webhook 받기
-- 의도적 실패 시나리오 (잘못된 PAT 또는 access 끊긴 repo) → Discord 알림 도착 확인 → forps 모달 진입 → reprocess 버튼 → 토스트 확인
+- pslog dev server + ngrok/cloudflared 로 webhook 받기
+- 의도적 실패 시나리오 (잘못된 PAT 또는 access 끊긴 repo) → Discord 알림 도착 확인 → pslog 모달 진입 → reprocess 버튼 → 토스트 확인
 
 ---
 

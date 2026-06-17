@@ -2,14 +2,14 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Phase 2a 가 깐 raw LogEvent 인입 위에 그룹화 / 자동 status 전이 / 신규 에러 Discord 알림까지 — 사용자가 forps 의 에러 추적 가치를 즉시 체감할 수 있는 layer 구축.
+**Goal:** Phase 2a 가 깐 raw LogEvent 인입 위에 그룹화 / 자동 status 전이 / 신규 에러 Discord 알림까지 — 사용자가 pslog 의 에러 추적 가치를 즉시 체감할 수 있는 layer 구축.
 
 **Architecture:** 7 task 분할 — config + fingerprint_service → error_group_service → log_alert_service (B-lite) → fingerprint_processor (composition) → ingest endpoint BackgroundTask 통합 → log_fingerprint_reaper + lifespan hook → 최종 회귀/PR. 마이그레이션 신규 X (Phase 1 alembic 이 모든 모델 + `idx_log_unfingerprinted` partial 포함). B1/B2/Phase6 학습 적용 — `with_for_update` 직렬화 / SAVEPOINT + IntegrityError fallback / fresh session per event / commit 후 알림 / `db.refresh` rollback expire 회피.
 
 **Tech Stack:** FastAPI 0.115 (BackgroundTasks), SQLAlchemy 2.0 async (with_for_update / begin_nested), Pydantic v2, hashlib SHA1, pytest + testcontainers PostgreSQL.
 
 **선행 조건:**
-- forps `main` = `90cce78` (Error-log Phase 2a PR #16 머지 직후)
+- pslog `main` = `90cce78` (Error-log Phase 2a PR #16 머지 직후)
 - alembic head = `7c6e0c9bb915` (Phase 6 컬럼 + Phase 1 모든 error-log 모델 + `idx_log_unfingerprinted` partial 포함)
 - backend tests baseline = **230 passing**
 - Phase 6 의 `notification_dispatcher` 자산 활용 (disable 정책 자동 적용)
@@ -76,7 +76,7 @@
 - [ ] **Step 1: Baseline 확인**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase3-fingerprint/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase3-fingerprint/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -336,7 +336,7 @@ Expected: 8 신규 PASS, 전체 `238 passed` (230 + 8).
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase3-fingerprint
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase3-fingerprint
 git add backend/app/config.py backend/app/services/fingerprint_service.py backend/tests/test_fingerprint_service.py
 git commit -m "$(cat <<'EOF'
 feat(error-log/phase3): fingerprint_service + APP_PROJECT_ROOT config
@@ -1426,7 +1426,7 @@ async def ingest_logs(
     background_tasks: BackgroundTasks,
     authorization: str | None = Header(default=None),
     content_encoding: str | None = Header(default=None),
-    x_forps_dropped_since_last: int | None = Header(default=None, alias="X-Forps-Dropped-Since-Last"),
+    x_pslog_dropped_since_last: int | None = Header(default=None, alias="X-pslog-Dropped-Since-Last"),
     db: AsyncSession = Depends(get_db),
 ):
     """... 기존 docstring ..."""
@@ -1453,7 +1453,7 @@ async def ingest_logs(
         accepted, rejected, accepted_ids = await log_ingest_service.ingest_batch(
             db, token=token,
             payload_dict=payload,
-            dropped_since_last=x_forps_dropped_since_last,
+            dropped_since_last=x_pslog_dropped_since_last,
         )
     except HTTPException:
         raise
@@ -1742,7 +1742,7 @@ EOF
 - [ ] **Step 1: 전체 backend 회귀**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase3-fingerprint/backend
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase3-fingerprint/backend
 source venv/bin/activate
 pytest -q 2>&1 | tail -3
 ```
@@ -1770,7 +1770,7 @@ Expected: `255 passed` (230 baseline + 25 신규: 8 fingerprint + 6 group + 3 al
 
 ### 마지막 커밋
 
-- forps: `<sha> docs(handoff+plan): Error-log Phase 3 완료 + Phase 4 다음 할 일`
+- pslog: `<sha> docs(handoff+plan): Error-log Phase 3 완료 + Phase 4 다음 할 일`
 - 브랜치 base: `90cce78` (main, Error-log Phase 2a PR #16 머지 직후)
 
 ### 다음 (Error-log Phase 4 — 조회 API + Git 컨텍스트 join)
@@ -1803,7 +1803,7 @@ Expected: `255 passed` (230 baseline + 25 신규: 8 fingerprint + 6 group + 3 al
 - [ ] **Step 4: handoff + plan + spec commit**
 
 ```bash
-cd /Users/arden/Documents/ardensdevspace/forps/.worktrees/error-log-phase3-fingerprint
+cd /Users/arden/Documents/ardensdevspace/pslog/.worktrees/error-log-phase3-fingerprint
 git add handoffs/main.md docs/superpowers/plans/2026-05-01-error-log-phase3-fingerprint.md
 git commit -m "$(cat <<'EOF'
 docs(handoff+plan): Error-log Phase 3 완료 + Phase 4 다음 할 일
@@ -1840,9 +1840,9 @@ error-log spec Phase 3 (fingerprint + ErrorGroup) + Phase 2b 의 reaper 합본 +
 - [x] backend **255 tests pass** (230 baseline + 25 신규)
 - [x] race fix 패턴 검증 — same group 동시 UPDATE 직렬화 (deterministic asyncio.Event 두 session)
 - [ ] e2e — 사용자 직접:
-  - app-chak 의 \`logger.error("test")\` → forps DB 의 log_events INSERT + fingerprint 자동 처리
-  - forps DB 의 error_groups → 1 row, status=OPEN, fingerprint 결정성 SQL 확인
-  - forps Discord 채널 — 🆕 새 에러 알림 1회 도착
+  - app-chak 의 \`logger.error("test")\` → pslog DB 의 log_events INSERT + fingerprint 자동 처리
+  - pslog DB 의 error_groups → 1 row, status=OPEN, fingerprint 결정성 SQL 확인
+  - pslog Discord 채널 — 🆕 새 에러 알림 1회 도착
   - 같은 에러 다시 → event_count++, 알림 안 옴 (cooldown)
   - 다른 에러 → 새 group + 새 알림
 

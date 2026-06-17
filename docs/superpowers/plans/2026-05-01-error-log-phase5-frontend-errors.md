@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** forps 화면에서 에러 목록 + 상세 + git 컨텍스트를 보고 status 전이 (resolve/ignore/reopen/unmute) 액션을 할 수 있게 하는 frontend UI. 사용자가 forps 켜서 "오늘 무슨 에러 났지" 보는 그 분기점.
+**Goal:** pslog 화면에서 에러 목록 + 상세 + git 컨텍스트를 보고 status 전이 (resolve/ignore/reopen/unmute) 액션을 할 수 있게 하는 frontend UI. 사용자가 pslog 켜서 "오늘 무슨 에러 났지" 보는 그 분기점.
 
 **Architecture:** Phase 5 Backend (PR #20) 의 endpoint 4개 (`GET /errors`, `GET /errors/{id}`, `GET /logs`, `PATCH /errors/{id}`) 그대로 사용. DashboardPage 의 viewMode 토글 ('board' | 'table' | 'week') 에 'errors' 추가, list ↔ detail 은 `selectedErrorGroupId` state 로 전환 (URL 라우팅은 v2). 기존 neobrutalism 스타일 (border-2 black + 빨간 그림자) 유지.
 
@@ -1114,7 +1114,7 @@ PR body (heredoc):
 ```markdown
 ## Summary
 
-Phase 5 Backend (PR #20) 의 endpoint 4개를 화면에 노출. forps 켜서 "오늘 무슨 에러 났지" 보는 그 분기점.
+Phase 5 Backend (PR #20) 의 endpoint 4개를 화면에 노출. pslog 켜서 "오늘 무슨 에러 났지" 보는 그 분기점.
 
 DashboardPage 의 viewMode 에 'errors' 추가 — 기존 Board/Table/Week 와 같은 토글 패턴. ErrorsList ↔ ErrorDetail 은 selectedErrorGroupId state 로 전환 (URL 라우팅은 v2 — Discord 딥링크 추가될 때).
 

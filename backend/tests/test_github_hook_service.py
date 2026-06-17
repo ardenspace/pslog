@@ -50,7 +50,7 @@ async def test_create_hook_posts_correct_body(monkeypatch: pytest.MonkeyPatch):
             status_code=201,
             json={
                 "id": 99999,
-                "config": {"url": "https://forps.example.com/api/v1/webhooks/github"},
+                "config": {"url": "https://pslog.example.com/api/v1/webhooks/github"},
             },
         )
 
@@ -58,7 +58,7 @@ async def test_create_hook_posts_correct_body(monkeypatch: pytest.MonkeyPatch):
     hook = await create_hook(
         _REPO,
         "ghp_abc",
-        callback_url="https://forps.example.com/api/v1/webhooks/github",
+        callback_url="https://pslog.example.com/api/v1/webhooks/github",
         secret="my-secret",
     )
     assert hook["id"] == 99999
@@ -68,7 +68,7 @@ async def test_create_hook_posts_correct_body(monkeypatch: pytest.MonkeyPatch):
     assert body["name"] == "web"
     assert body["active"] is True
     assert body["events"] == ["push", "pull_request"]
-    assert body["config"]["url"] == "https://forps.example.com/api/v1/webhooks/github"
+    assert body["config"]["url"] == "https://pslog.example.com/api/v1/webhooks/github"
     assert body["config"]["secret"] == "my-secret"
     assert body["config"]["content_type"] == "json"
 
@@ -82,14 +82,14 @@ async def test_update_hook_patches_secret(monkeypatch: pytest.MonkeyPatch):
         captured["body"] = request.content
         return httpx.Response(
             status_code=200,
-            json={"id": 12345678, "config": {"url": "https://forps.example.com/api/v1/webhooks/github"}},
+            json={"id": 12345678, "config": {"url": "https://pslog.example.com/api/v1/webhooks/github"}},
         )
 
     monkeypatch.setattr(httpx.AsyncClient, "send", fake_send)
     hook = await update_hook(
         _REPO, "ghp_abc",
         hook_id=12345678,
-        callback_url="https://forps.example.com/api/v1/webhooks/github",
+        callback_url="https://pslog.example.com/api/v1/webhooks/github",
         secret="rotated-secret",
     )
     assert hook["id"] == 12345678
