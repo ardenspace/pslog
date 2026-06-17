@@ -83,13 +83,21 @@ async def reconcile(
     return newly_opened
 
 
+# 드리프트 타입 → Discord 알림 표시용 한글 라벨 (없으면 enum value 로 폴백)
+_TYPE_LABEL = {
+    DriftType.DECISION_NOT_PROMOTED: "결정 미승격",
+    DriftType.STATUS_CONTRADICTION: "상태 모순",
+    DriftType.TASK_NOT_PREPARED: "태스크 미준비",
+}
+
+
 def format_drift_alert(newly_opened: list[Drift]) -> str | None:
     """신규 OPEN 드리프트 목록 → Discord 알림 문자열. 빈 목록이면 None."""
     if not newly_opened:
         return None
     lines = ["⚠️ **forps 드리프트 감지**"]
     for d in newly_opened:
-        lines.append(f"• [{d.type.value}] {d.branch} — {d.detail}")
+        lines.append(f"• [{_TYPE_LABEL.get(d.type, d.type.value)}] {d.branch} — {d.detail}")
     return "\n".join(lines)
 
 
