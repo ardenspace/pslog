@@ -16,6 +16,7 @@ class ParsedTask(BaseModel):
     checked: bool              # PLAN 자체의 [x]/[ ]
     assignee: str | None       # "alice" 또는 None
     paths: list[str] = Field(default_factory=list)  # backtick 으로 감싼 파일/디렉토리
+    deep: bool = False         # PLAN 라인에 (deep) 마커가 있으면 True (무게: 깊은 준비 필요)
 
 
 class ParsedPlan(BaseModel):

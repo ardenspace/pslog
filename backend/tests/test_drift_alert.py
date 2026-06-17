@@ -18,4 +18,4 @@ def test_format_drift_alert_includes_branch_and_detail():
     assert out is not None
     assert "feat/x" in out
     assert "handoff 미완" in out
-    assert "status_contradiction" in out
+    assert "상태 모순" in out

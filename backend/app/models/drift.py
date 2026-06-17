@@ -11,6 +11,7 @@ from app.database import Base
 class DriftType(str, enum.Enum):
     DECISION_NOT_PROMOTED = "decision_not_promoted"   # A
     STATUS_CONTRADICTION = "status_contradiction"     # B
+    TASK_NOT_PREPARED = "task_not_prepared"           # C
 
 
 class DriftStatus(str, enum.Enum):

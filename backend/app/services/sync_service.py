@@ -173,7 +173,7 @@ async def _process_inner(
 ) -> tuple[PlanChanges | None, bool, bool, str | None]:
     """Returns: (plan_changes, handoff_present, plan_changed, drift_alert).
 
-    drift_alert: 이번 sync 로 신규 OPEN 된 B 드리프트 알림 content (없으면 None).
+    drift_alert: 이번 sync 로 신규 OPEN 된 B+C 드리프트 알림 content (없으면 None).
     """
     changed_files = await _collect_changed_files(
         event, project, fetch_compare=fetch_compare
@@ -185,10 +185,25 @@ async def _process_inner(
     plan_changes: PlanChanges | None = None
     handoff_present = False
 
+    from app.services import drift_service
+
+    # 결정-진실 루프 C: 브랜치 task 준비도 미달 감지.
+    # PLAN/handoff 변경과 무관하게(코드만 push 해도) 평가해야 하므로 early-return 가드 앞에서 독립 실행.
+    c_alert: str | None = None
+    try:
+        newly_c = await drift_service.detect_task_not_prepared(
+            db, project=project, branch=event.branch,
+            head_sha=event.head_commit_sha, base_sha=event.before_commit_sha,
+            fetch_file=fetch_file, fetch_compare=fetch_compare,
+        )
+        c_alert = drift_service.format_drift_alert(newly_c)
+    except Exception:
+        logger.exception("drift(C) detection failed for event %s", event.id)
+
     if not plan_changed and not handoff_changed:
         logger.info("event %s: no PLAN/handoff in changed files — skip", event.id)
-        # PLAN/handoff 무변경이면 B 재평가도 무의미 — drift_alert None.
-        return plan_changes, handoff_present, plan_changed, None
+        # PLAN/handoff 무변경이어도 C(준비도) 알림은 전달.
+        return plan_changes, handoff_present, plan_changed, c_alert
 
     pat = _decrypt_pat(project)
 
@@ -215,14 +230,15 @@ async def _process_inner(
     # 결정-진실 루프 B: handoff↔PLAN 상태 모순 감지 (저장된 Handoff.parsed_tasks 사용).
     # PLAN 또는 handoff 변경 시 항상 재평가. flush 만 — commit 은 process_event 가 담당.
     # 신규 OPEN 드리프트는 알림 content 로 만들어 caller(process_event)가 commit 후 dispatch.
-    from app.services import drift_service
-    drift_alert: str | None = None
+    drift_alert: str | None = c_alert
     try:
         newly = await drift_service.detect_status_contradictions(
             db, project_id=project.id, branch=event.branch,
             commit_sha=event.head_commit_sha,
         )
-        drift_alert = drift_service.format_drift_alert(newly)
+        b_alert = drift_service.format_drift_alert(newly)
+        if b_alert:
+            drift_alert = f"{drift_alert}\n\n{b_alert}" if drift_alert else b_alert
     except Exception:
         logger.exception("drift(B) detection failed for event %s", event.id)
 

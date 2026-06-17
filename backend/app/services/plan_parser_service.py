@@ -86,6 +86,7 @@ def parse_plan(text: str) -> ParsedPlan:
         seen_ids.add(external_id)
 
         title, assignee, paths = _parse_task_rest(m.group("rest"))
+        deep = bool(re.search(r"\(deep\)", m.group("rest")))
         tasks.append(
             ParsedTask(
                 external_id=external_id,
@@ -93,6 +94,7 @@ def parse_plan(text: str) -> ParsedPlan:
                 checked=m.group("check").lower() == "x",
                 assignee=assignee,
                 paths=paths,
+                deep=deep,
             )
         )
 

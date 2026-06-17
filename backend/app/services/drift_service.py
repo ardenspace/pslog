@@ -6,6 +6,7 @@ OPEN 유지/생성, 빠진 OPEN은 RESOLVED. IGNORED는 불변.
 """
 
 import logging
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -82,13 +83,21 @@ async def reconcile(
     return newly_opened
 
 
+# 드리프트 타입 → Discord 알림 표시용 한글 라벨 (없으면 enum value 로 폴백)
+_TYPE_LABEL = {
+    DriftType.DECISION_NOT_PROMOTED: "결정 미승격",
+    DriftType.STATUS_CONTRADICTION: "상태 모순",
+    DriftType.TASK_NOT_PREPARED: "태스크 미준비",
+}
+
+
 def format_drift_alert(newly_opened: list[Drift]) -> str | None:
     """신규 OPEN 드리프트 목록 → Discord 알림 문자열. 빈 목록이면 None."""
     if not newly_opened:
         return None
     lines = ["⚠️ **forps 드리프트 감지**"]
     for d in newly_opened:
-        lines.append(f"• [{d.type.value}] {d.branch} — {d.detail}")
+        lines.append(f"• [{_TYPE_LABEL.get(d.type, d.type.value)}] {d.branch} — {d.detail}")
     return "\n".join(lines)
 
 
@@ -206,4 +215,74 @@ async def detect_unpromoted_decisions(
 
     return await reconcile(db, project_id=project.id,
                            type_=DriftType.DECISION_NOT_PROMOTED,
+                           current=items, branch=branch)
+
+
+_BRANCH_TASK_RE = re.compile(r"^feat/(task-[0-9]+)-")
+
+
+def _branch_to_task(branch: str) -> str | None:
+    m = _BRANCH_TASK_RE.match(branch or "")
+    return m.group(1) if m else None
+
+
+async def detect_task_not_prepared(
+    db: AsyncSession,
+    *,
+    project,
+    branch: str,
+    head_sha: str,
+    base_sha: str | None,
+    fetch_file,
+    fetch_compare,
+) -> list[Drift]:
+    """C: 브랜치 task 에 코드가 들어왔는데 무게별 준비 산출물이 없으면 OPEN.
+    deep → spec.md+plan.md / light → brief.md (docs/tasks/task-NNN/)."""
+    from app.services.sync_service import _decrypt_pat  # 순환 import 회피 (A 패턴과 동일)
+    from app.services.plan_parser_service import parse_plan
+
+    external_id = _branch_to_task(branch)
+    if external_id is None or project.git_repo_url is None or base_sha is None:
+        # 평가 대상 아님(브랜치 형식/최초 push/저장소 미설정) → reconcile 안 함(기존 OPEN 보존)
+        return []
+
+    pat = _decrypt_pat(project)
+
+    # 코드 들어옴? (tasks_dir 밖 변경 파일 1개+)
+    tasks_root = project.tasks_dir.rstrip("/") + "/"
+    try:
+        changed = await fetch_compare(project.git_repo_url, pat, base_sha, head_sha)
+    except Exception:
+        changed = []
+    code_landed = any(not f.startswith(tasks_root) for f in changed)
+    if not code_landed:
+        return await reconcile(db, project_id=project.id, type_=DriftType.TASK_NOT_PREPARED,
+                               current=[], branch=branch)
+
+    # PLAN 에서 무게 판정
+    plan_text = await fetch_file(project.git_repo_url, pat, head_sha, project.plan_path)
+    parsed = parse_plan(plan_text) if plan_text else None
+    task = next((t for t in parsed.tasks if t.external_id == external_id), None) if parsed else None
+    deep = bool(task.deep) if task else False
+
+    base = f"{tasks_root}{external_id}"
+    required = [f"{base}/spec.md", f"{base}/plan.md"] if deep else [f"{base}/brief.md"]
+
+    async def _present(path: str) -> bool:
+        txt = await fetch_file(project.git_repo_url, pat, head_sha, path)
+        return txt is not None and txt.strip() != ""
+
+    missing = [p for p in required if not await _present(p)]
+
+    items: list[DriftItem] = []
+    if missing:
+        kind = "spec/plan" if deep else "brief"
+        items.append(DriftItem(
+            dedup_key=f"{branch}:{external_id}",
+            branch=branch,
+            external_id=external_id,
+            detail=f"{external_id}: 코드 들어왔는데 준비 문서 누락({kind}) → {', '.join(missing)} 작성하세요",
+            commit_sha=head_sha,
+        ))
+    return await reconcile(db, project_id=project.id, type_=DriftType.TASK_NOT_PREPARED,
                            current=items, branch=branch)

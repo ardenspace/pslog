@@ -23,6 +23,7 @@ const STATUS_BADGE: Record<DriftStatus, string> = {
 const TYPE_LABEL: Record<DriftType, string> = {
   decision_not_promoted: '결정 미승격',
   status_contradiction: '상태 모순',
+  task_not_prepared: '태스크 미준비',
 };
 
 function DriftRow({
