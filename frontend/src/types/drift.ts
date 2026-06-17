@@ -1,5 +1,5 @@
 // Backend DriftType / DriftStatus enum wire values
-export type DriftType = 'decision_not_promoted' | 'status_contradiction';
+export type DriftType = 'decision_not_promoted' | 'status_contradiction' | 'task_not_prepared';
 export type DriftStatus = 'open' | 'resolved' | 'ignored';
 
 // PATCH action
