@@ -61,12 +61,13 @@ plan 은 완성될 퍼즐, 각 Step 은 *미완성 퍼즐 조각*이다. 조각 
 - **light** task 는 brief 의 DoD 검증(예: `pnpm typecheck`) 한 줄로 충분 — 끝의 무거운 e2e 불요.
 - step별 tripwire 는 둘 다 공통(어차피 싸다).
 
-### 3.3 SKILL.md 5·6번 개정문 (반영 대상)
-> **5. 구현** — plan 의 Step 을 하나씩 따라 코드. **각 Step 끝 build/typecheck 로 안 깨졌나만 확인**(테스트 작성·리뷰 아님).
-> 전체 끝나면 → **코드 리뷰 + 수정 → e2e(또는 DoD 검증 명령) 통과**. 진행하며 handoff 오늘 날짜 섹션 갱신.
-> 구현 중 plan 과 달라진 결정은 **그때그때 handoff `### 결정`에 기록**(코드 리뷰에서 나온 결정도 여기로).
-> **6. 마무리** — git push **직전 반드시 handoff commit**. task 끝나면 PLAN.md `[task-NNN]` 체크.
-> **PR(공유 브랜치 첫 land) 때 spec·handoff 의 굳은 결정을 DECISIONS.md 로 승격**(§4, decision-truth-loop 와 물림).
+### 3.3 SKILL.md 개정문 (반영 완료 — 7-step)
+구현 시 "끝 검증"은 자체 멈춤 게이트가 필요해 **별도 step(6)으로 분리**했다(멈춤 규칙 표의 `구현 → 마무리` 게이트와 1:1 대응).
+> **5. 구현** — plan 의 Step 을 하나씩 따라 코드. **각 Step 끝엔 build/typecheck 로 안 깨졌나만 확인**(step별 단위 테스트 작성·리뷰는 안 함).
+> 진행하며 handoff 오늘 날짜 섹션 갱신. 구현 중 plan 과 달라진 결정은 **그때그때 handoff `### 결정`에 기록**(끝 검증 리뷰에서 나온 결정도 여기로).
+> **6. 끝 검증** — 전체 구현 끝 → **코드 리뷰 + 수정 → e2e(heavy) 또는 brief DoD 검증 명령(light)** 통과. 브랜치 diff 전체(숲)를 한 번에. **여기서 멈춰 통과 확인** 후 마무리.
+> **7. 마무리** — git push **직전 반드시 handoff commit**. task 끝나면 PLAN.md `[task-NNN]` 체크.
+> **PR(공유 통합 브랜치 첫 land) 때 spec·handoff 의 굳은 결정을 DECISIONS.md 로 승격**(§4, decision-truth-loop 와 물림, 멱등).
 
 ---
 
