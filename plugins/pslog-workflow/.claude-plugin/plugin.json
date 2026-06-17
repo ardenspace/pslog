@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "pslog-workflow",
+  "displayName": "pslog Workflow",
+  "version": "0.1.0",
+  "description": "pslog로 관리되는 프로젝트에서 할당된 task를 무게에 맞는 준비 문서(brief 또는 spec→plan)로 탄탄하게 실현하고, 각 단계마다 사람 승인을 받는 워크플로 스킬.",
+  "author": { "name": "ardenspace" },
+  "homepage": "https://github.com/ardenspace/pslog",
+  "repository": "https://github.com/ardenspace/pslog",
+  "license": "MIT",
+  "keywords": ["pslog", "workflow", "spec", "plan", "task"]
+}
