@@ -13,7 +13,7 @@ description: pslog로 관리되는 프로젝트에서 행동은 그대로 두고
 
 - **여기**: 중복 제거, 모듈 분리, 네이밍/구조 정리, 데드코드 제거, 의존성 업뎃 — **행동 불변**.
 - **여기 아님**: 버그픽스·기능변경(행동을 *바꾸는* 게 목적) → `pslog-workflow`. 새 기능 기획 → `pslog-planning`.
-- 사용자 발화가 행동 변경인지 애매하면(예: "이 코드 좀 어떻게 해봐") **관통하지 말고 행동을 바꾸는지 먼저 물어** 라우팅을 가른다.
+- 사용자 발화가 행동 변경인지 애매하면(예: "이 코드 좀 어떻게 해봐") **관통하지 말고 행동을 바꾸는지 먼저 물어** 라우팅을 가른다. (정리+버그가 섞이면 — "버그라서 정리하자" — 행동 변경이 우선 → `pslog-workflow`.)
 
 ## 흐름 (각 → 에서 멈춰 승인)
 
@@ -24,10 +24,10 @@ description: pslog로 관리되는 프로젝트에서 행동은 그대로 두고
    - light → before 기존 테스트 green 확인(어떤 테스트가 이 행동을 덮나).
    - heavy → 현재 행동을 핀고정하는 characterization 테스트를 **먼저** 작성.
    → **계약(무엇으로 동치 증명할지) 사용자 승인.**
-5. **핸드오프** — `pslog-workflow` 로 코드화:
-   - heavy → PLAN.md `## 태스크` 에 `(deep)` task 한 줄 등록(제안 후 확인) + handoff 문서에 진단/계약 박음.
-   - light → PLAN.md 건너뛰고 handoff 문서에 진단/계약 박고 바로 브랜치.
-   이후 무게게이트→brief│spec/plan→구현→**끝검증(코드리뷰 + 「행동 동치」: 4번 테스트 그대로 green)** 은 `pslog-workflow` 가 수행.
+5. **핸드오프** — `pslog-workflow` 로 코드화. (refactor가 브랜치+handoff를 직접 만들고, workflow의 task 선택은 건너뛴 채 **무게 판정/준비 문서 단계로 진입**한다.)
+   - heavy → PLAN.md `## 태스크` 에 `(deep)` task 한 줄 등록(제안 후 확인) + handoff 문서에 진단/계약 박음 → workflow가 그 task를 잡고 진입.
+   - light → PLAN task 없음. handoff 문서에 진단/계약 박고 바로 브랜치 → workflow의 무게 판정/준비 문서 단계로 진입(task 선택 건너뜀).
+   이후 무게게이트→brief│spec/plan→구현→**끝검증(코드리뷰 + 「행동 동치」: 4단계 동작보존 계약의 테스트 그대로 green)** 은 `pslog-workflow` 가 수행.
 
 ## 멈춤 규칙 (강제)
 
