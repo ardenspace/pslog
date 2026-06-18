@@ -1,6 +1,6 @@
 ---
 name: pslog-workflow
-description: pslog로 관리되는 프로젝트에서 할당된 task를 탄탄하게 실현하는 워크플로. 사용자가 "내 할 일/다음 작업/뭐 하지" 류로 묻거나, task를 잡고 코드 작성에 들어갈 때 사용. PLAN.md/handoff를 읽어 task를 고르고, 무게 게이트로 brief vs spec→plan을 정하고, 각 단계마다 사람 승인을 받는다.
+description: pslog로 관리되는 프로젝트에서 할당된 task를 탄탄하게 실현하는 워크플로. 사용자가 "내 할 일/다음 작업/뭐 하지" 류로 묻거나, task를 잡고 코드 작성에 들어갈 때, 또는 행동을 *바꾸는* 버그픽스/기능변경에 사용. PLAN.md/handoff를 읽어 task를 고르고, 무게 게이트로 brief vs spec→plan을 정하고, 각 단계마다 사람 승인을 받는다. (행동은 그대로 두고 구조만 바꾸는 리팩토링은 pslog-refactor.)
 ---
 
 # pslog-workflow
