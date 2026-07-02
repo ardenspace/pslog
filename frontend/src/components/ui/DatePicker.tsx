@@ -32,11 +32,14 @@ export function DatePicker({
     ? format(selectedDate, 'yyyy. M. d', { locale: ko })
     : null;
 
+  // disabled 로 전환되는 순간 닫음 — open 은 handleToggle(!disabled 가드)로만
+  // true 가 되므로, 이 조건은 열린 채 disabled 가 된 전환 시점에만 참이다.
+  if (disabled && open) {
+    setOpen(false);
+  }
+
   useEffect(() => {
-    if (disabled) {
-      setOpen(false);
-      return;
-    }
+    if (disabled) return;
 
     const handleMouseDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {

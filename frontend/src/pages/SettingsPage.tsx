@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,12 +12,19 @@ type Status =
 
 export function SettingsPage() {
   const { user, updateMe, isUpdatingMe } = useAuth();
-  const [username, setUsername] = useState('');
+  // 원본 effect 의 리셋 트리거(서버 username 변경 시 입력값 동기화)를 effect 없이
+  // 파생으로 재현: draft 는 생성 시점 서버 값(base)이 유지되는 동안만 유효.
+  const [usernameDraft, setUsernameDraft] = useState<{
+    value: string;
+    base: string;
+  } | null>(null);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
-  useEffect(() => {
-    setUsername(user?.username ?? '');
-  }, [user?.username]);
+  const serverUsername = user?.username ?? '';
+  const username =
+    usernameDraft && usernameDraft.base === serverUsername
+      ? usernameDraft.value
+      : serverUsername;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +98,12 @@ export function SettingsPage() {
                 id="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                onChange={(e) =>
+                  setUsernameDraft({
+                    value: e.target.value.toLowerCase(),
+                    base: serverUsername,
+                  })
+                }
                 placeholder="arden"
                 pattern="[a-z0-9_-]{2,32}"
                 className="bg-white/80 border border-brand-blue/20 rounded-xl w-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 transition-all text-brand-blue font-mono"
