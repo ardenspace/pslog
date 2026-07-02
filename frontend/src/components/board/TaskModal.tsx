@@ -69,6 +69,11 @@ export function TaskModal(props: TaskModalProps) {
     assigneeId: null as string | null,
   });
 
+  // 모드별 초기화 소스 — create 에선 task 가 항상 null, edit 에선 currentUserId 가
+  // 항상 undefined 라 아래 dep 배열의 발화 조건은 모드별 소스 하나로 좁혀진다.
+  const currentUserId = isCreateMode ? props.currentUserId : undefined;
+  const task = isCreateMode ? null : props.task;
+
   // Initialize form state
   useEffect(() => {
     if (!isOpen) return;
@@ -79,33 +84,32 @@ export function TaskModal(props: TaskModalProps) {
       setDescription('');
       setStatus('todo');
       setDueDate('');
-      setAssigneeId(props.currentUserId);
+      setAssigneeId(currentUserId ?? null);
       setIsSaving(false);
       setShowSaved(false);
-    } else if (props.task) {
+    } else if (task) {
       // Edit mode: load task data
-      const taskDueDate = props.task.due_date ? props.task.due_date.split('T')[0] : '';
-      setTitle(props.task.title);
-      setDescription(props.task.description || '');
-      setStatus(props.task.status);
+      const taskDueDate = task.due_date ? task.due_date.split('T')[0] : '';
+      setTitle(task.title);
+      setDescription(task.description || '');
+      setStatus(task.status);
       setDueDate(taskDueDate);
-      setAssigneeId(props.task.assignee_id);
+      setAssigneeId(task.assignee_id);
       setOriginal({
-        title: props.task.title,
-        description: props.task.description || '',
-        status: props.task.status,
+        title: task.title,
+        description: task.description || '',
+        status: task.status,
         dueDate: taskDueDate,
-        assigneeId: props.task.assignee_id,
+        assigneeId: task.assignee_id,
       });
       setIsSaving(false);
       setShowSaved(false);
       setDeleteConfirmOpen(false);
     }
-  }, [isOpen, isCreateMode, isCreateMode ? props.currentUserId : props.task]);
+  }, [isOpen, isCreateMode, currentUserId, task]);
 
   const canEdit = isCreateMode || props.myRole === 'owner' || props.myRole === 'editor';
   const canDelete = !isCreateMode && props.myRole === 'owner';
-  const task = isCreateMode ? null : props.task;
 
   if (!isOpen) return null;
   if (!isCreateMode && !task) return null;
