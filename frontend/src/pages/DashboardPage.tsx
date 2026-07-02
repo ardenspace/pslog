@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES, SITE_NAME } from '@/constants';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { useAutoSelectFirst } from '@/hooks/useAutoSelectFirst';
+import { useMobileSidebar } from '@/hooks/useMobileSidebar';
 import { useMyProjects, useProjectMembers, useUpdateProject } from '@/hooks/useProjects';
 import { useTasks, useDeleteTask, useUpdateTask, useWeekTasks } from '@/hooks/useTasks';
 import { useSendDiscordSummary } from '@/hooks/useDiscord';
@@ -36,25 +38,7 @@ export function DashboardPage() {
   } = useUIStore();
 
   const { data: workspaces } = useWorkspaces();
-
-  useEffect(() => {
-    if (!workspaces) {
-      return;
-    }
-
-    if (workspaces.length === 0) {
-      setSelectedWorkspace(null);
-      return;
-    }
-
-    const hasSelectedWorkspace = selectedWorkspaceId
-      ? workspaces.some((ws) => ws.id === selectedWorkspaceId)
-      : false;
-
-    if (!hasSelectedWorkspace) {
-      setSelectedWorkspace(workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId, setSelectedWorkspace]);
+  useAutoSelectFirst(workspaces, selectedWorkspaceId, setSelectedWorkspace);
 
   const currentWorkspace = workspaces?.find((ws) => ws.id === selectedWorkspaceId);
 
@@ -95,37 +79,21 @@ export function DashboardPage() {
   const [isCreateProjectModalOpen, setCreateProjectModalOpen] = useState(false);
   const [isProjectMemberModalOpen, setProjectMemberModalOpen] = useState(false);
   const [isShareManagerOpen, setShareManagerOpen] = useState(false);
-  const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedErrorGroupId, setSelectedErrorGroupId] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const swipeStartXRef = useRef<number | null>(null);
-  const swipeStartYRef = useRef<number | null>(null);
-  const isSwipeTrackingRef = useRef(false);
+  const {
+    isOpen: isMobileSidebarOpen,
+    close: closeMobileSidebar,
+    toggle: toggleMobileSidebar,
+  } = useMobileSidebar();
 
   const weekStartStr = weekStart.toISOString().split('T')[0];
   const { data: weekTasks, isLoading: isWeekLoading } = useWeekTasks(
     viewMode === 'week' ? weekStartStr : null
   );
 
-  useEffect(() => {
-    if (!projects) {
-      return;
-    }
-
-    if (projects.length === 0) {
-      setSelectedProject(null);
-      return;
-    }
-
-    const hasSelectedProject = selectedProjectId
-      ? projects.some((project) => project.id === selectedProjectId)
-      : false;
-
-    if (!hasSelectedProject) {
-      setSelectedProject(projects[0].id);
-    }
-  }, [projects, selectedProjectId, setSelectedProject]);
+  useAutoSelectFirst(projects, selectedProjectId, setSelectedProject);
 
   useEffect(() => {
     // 프로젝트 변경 시 선택된 에러 그룹 초기화.
@@ -135,87 +103,6 @@ export function DashboardPage() {
 
   const handleDeleteTask = (taskId: string) => {
     deleteTaskMutation.mutate(taskId);
-  };
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 768px)');
-    const handleChange = (event: MediaQueryListEvent) => {
-      if (event.matches) {
-        setMobileSidebarOpen(false);
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    const EDGE_START_PX = 64;
-    const OPEN_THRESHOLD_PX = 72;
-    const MAX_VERTICAL_DRIFT_PX = 64;
-
-    const resetSwipe = () => {
-      swipeStartXRef.current = null;
-      swipeStartYRef.current = null;
-      isSwipeTrackingRef.current = false;
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (window.matchMedia('(min-width: 768px)').matches || isMobileSidebarOpen) {
-        return;
-      }
-
-      const touch = event.touches[0];
-      if (!touch || touch.clientX > EDGE_START_PX) {
-        resetSwipe();
-        return;
-      }
-
-      swipeStartXRef.current = touch.clientX;
-      swipeStartYRef.current = touch.clientY;
-      isSwipeTrackingRef.current = true;
-    };
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      if (!isSwipeTrackingRef.current) {
-        return;
-      }
-
-      const startX = swipeStartXRef.current;
-      const startY = swipeStartYRef.current;
-      const touch = event.changedTouches[0];
-
-      if (startX === null || startY === null || !touch) {
-        resetSwipe();
-        return;
-      }
-
-      const deltaX = touch.clientX - startX;
-      const deltaY = Math.abs(touch.clientY - startY);
-
-      if (deltaX >= OPEN_THRESHOLD_PX && deltaY <= MAX_VERTICAL_DRIFT_PX) {
-        setMobileSidebarOpen(true);
-      }
-
-      resetSwipe();
-    };
-
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
-    window.addEventListener('touchcancel', resetSwipe, { passive: true });
-
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('touchcancel', resetSwipe);
-    };
-  }, [isMobileSidebarOpen]);
-
-  const closeMobileSidebar = () => {
-    setMobileSidebarOpen(false);
   };
 
   const handleProjectSelect = (projectId: string) => {
@@ -389,7 +276,7 @@ export function DashboardPage() {
             <div className="flex items-center justify-between gap-4 sm:justify-end">
               <button
                 type="button"
-                onClick={() => setMobileSidebarOpen((prev) => !prev)}
+                onClick={toggleMobileSidebar}
                 className="md:hidden glass px-3 py-1.5 rounded-lg text-xs font-medium text-brand-blue"
               >
                 메뉴
