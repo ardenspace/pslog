@@ -2,6 +2,17 @@
 
 B2B 협업 업무 관리 툴 (Task Management & Collaboration Tool)
 
+## Claude Code 플러그인 (마켓플레이스)
+
+이 repo는 pslog 앱 외에 **Claude Code 워크플로 플러그인**(`pslog-workflow`)을 마켓플레이스로 배포한다:
+
+```
+/plugin marketplace add ardenspace/pslog
+/plugin install pslog-workflow@pslog
+```
+
+스킬 3개(pslog-planning / pslog-workflow / pslog-refactor)와 SessionStart 훅 구성 — 상세는 [`plugins/pslog-workflow/README.md`](plugins/pslog-workflow/README.md).
+
 ## 기술 스택
 
 ### Backend
@@ -168,7 +179,7 @@ alembic downgrade -1
 
 운영은 **이 호스트의 docker compose** 로 돌린다 (Railway/Render PaaS 아님 — repo 의 `render.yaml`/`netlify.toml` 은 대안 설정일 뿐 현재 활성 경로가 아님). 외부 노출은 **Cloudflare Tunnel** 이 공개 도메인 → `localhost:8081` 로 매핑 (`PSLOG_PUBLIC_URL`, GitHub webhook 이 이 URL 로 들어옴).
 
-> ⚠️ **자동 배포 아님.** main 에 push 해도 컨테이너는 그대로다 (CI/webhook 없음). 새 코드를 반영하려면 **이 호스트에서 직접** 아래 명령을 쳐야 한다.
+> ⚠️ **자동 배포 아님.** main 에 push 해도 컨테이너는 그대로다 (배포 자동화 없음 — GitHub Actions CI 는 테스트만 돈다). 새 코드를 반영하려면 **이 호스트에서 직접** 아래 명령을 쳐야 한다.
 
 ### 백엔드 (docker compose)
 
