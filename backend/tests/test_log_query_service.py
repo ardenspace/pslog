@@ -198,21 +198,23 @@ async def test_get_group_detail_previous_good_sha_algorithm(async_session: Async
     # NB: version_sha CHECK = '^[0-9a-f]{40}$' OR 'unknown' — hex 문자만.
     good_sha = "b" * 40
     target_sha = "c" * 40
+    # 고정 날짜 금지 — log_events 파티션은 migration 실행일 기준 +30일만 존재 (시한폭탄 회피)
+    target_time = datetime.utcnow()
     good_event = _make_log_event(
         proj, fingerprint=other_fp, version_sha=good_sha,
         environment="production",
-        received_at=datetime(2026, 5, 1, 9, 0),  # before target
+        received_at=target_time - timedelta(hours=1),  # before target
     )
 
     # New: target_fp 의 첫 발생
     target_event = _make_log_event(
         proj, fingerprint=target_fp, version_sha=target_sha,
         environment="production",
-        received_at=datetime(2026, 5, 1, 10, 0),
+        received_at=target_time,
     )
 
     group = _make_group(proj, fingerprint=target_fp)
-    group.first_seen_at = datetime(2026, 5, 1, 10, 0)
+    group.first_seen_at = target_time
 
     async_session.add_all([good_event, target_event, group])
     await async_session.commit()
