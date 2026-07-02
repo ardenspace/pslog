@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.drift import Drift, DriftStatus, DriftType
+from app.services.git_sync_helpers import decrypt_pat, handoff_file_path
 
 logger = logging.getLogger(__name__)
 
@@ -175,12 +176,11 @@ async def detect_unpromoted_decisions(
           (2) 항목은 있고 전부 promoted=True 인데 PR diff 에 DECISIONS.md 변경 없음.
     """
     from app.services.handoff_parser_service import MalformedHandoffError, parse_handoff
-    from app.services.sync_service import _decrypt_pat, _handoff_file_path
 
     if project.git_repo_url is None:
         return []
-    pat = _decrypt_pat(project)
-    handoff_path = _handoff_file_path(project, branch)
+    pat = decrypt_pat(project)
+    handoff_path = handoff_file_path(project, branch)
     text = await fetch_file(project.git_repo_url, pat, head_sha, handoff_path)
     if text is None:
         return await reconcile(db, project_id=project.id,
@@ -238,7 +238,6 @@ async def detect_task_not_prepared(
 ) -> list[Drift]:
     """C: 브랜치 task 에 코드가 들어왔는데 무게별 준비 산출물이 없으면 OPEN.
     deep → spec.md+plan.md / light → brief.md (docs/tasks/task-NNN/)."""
-    from app.services.sync_service import _decrypt_pat  # 순환 import 회피 (A 패턴과 동일)
     from app.services.plan_parser_service import parse_plan
 
     external_id = _branch_to_task(branch)
@@ -246,7 +245,7 @@ async def detect_task_not_prepared(
         # 평가 대상 아님(브랜치 형식/최초 push/저장소 미설정) → reconcile 안 함(기존 OPEN 보존)
         return []
 
-    pat = _decrypt_pat(project)
+    pat = decrypt_pat(project)
 
     # 코드 들어옴? (tasks_dir 밖 변경 파일 1개+)
     tasks_root = project.tasks_dir.rstrip("/") + "/"
