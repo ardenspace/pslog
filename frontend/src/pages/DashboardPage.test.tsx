@@ -19,7 +19,7 @@ vi.mock('@/services/api', () => ({
   api: {
     auth: { me: vi.fn(), logout: vi.fn() },
     workspaces: { list: vi.fn() },
-    projects: { listMine: vi.fn(), getMembers: vi.fn() },
+    projects: { listMine: vi.fn(), getMembers: vi.fn(), update: vi.fn() },
     tasks: { list: vi.fn(), getWeek: vi.fn() },
     errors: { list: vi.fn() },
     drifts: { list: vi.fn() },
@@ -74,6 +74,11 @@ function setupApi({ projects }: { projects: Project[] }) {
   mocked.workspaces.list.mockReturnValue(ok([workspace]) as never);
   mocked.projects.listMine.mockReturnValue(ok(projects) as never);
   mocked.projects.getMembers.mockReturnValue(ok([]) as never);
+  mocked.projects.update.mockImplementation(((
+    _wsId: string,
+    _pId: string,
+    data: { discord_webhook_url?: string | null }
+  ) => ok(makeProject({ discord_webhook_url: data.discord_webhook_url ?? null }))) as never);
   mocked.tasks.list.mockReturnValue(ok([]) as never);
   mocked.tasks.getWeek.mockReturnValue(ok([]) as never);
   mocked.errors.list.mockReturnValue(ok({ items: [], total: 0 }) as never);
@@ -84,13 +89,14 @@ function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <DashboardPage />
       </MemoryRouter>
     </QueryClientProvider>
   );
+  return queryClient;
 }
 
 beforeEach(() => {
@@ -144,6 +150,9 @@ describe('DashboardPage characterization', () => {
       expect(useUIStore.getState().selectedProjectId).toBe('p1');
     });
 
+    await u.click(screen.getByRole('button', { name: 'Table' }));
+    expect(await screen.findByText('마감일')).toBeInTheDocument();
+
     await u.click(screen.getByRole('button', { name: 'Week' }));
     expect(await screen.findByText('내 주간 태스크')).toBeInTheDocument();
 
@@ -190,5 +199,87 @@ describe('DashboardPage characterization', () => {
     // owner 전용 컨트롤 노출 (4번의 양성 케이스)
     expect(screen.getByText('공유 링크 관리')).toBeInTheDocument();
     expect(screen.getAllByText('프로젝트 멤버')).toHaveLength(2);
+  });
+
+  it('6. 편집 중 프로젝트를 전환하면 webhook 편집 상태가 리셋된다', async () => {
+    setupApi({
+      projects: [
+        makeProject({ id: 'p1', name: '프로젝트일' }),
+        makeProject({ id: 'p2', name: '프로젝트이', discord_webhook_url: 'https://discord.com/api/webhooks/p2' }),
+      ],
+    });
+    renderPage();
+    const u = userEvent.setup();
+
+    const inputs = await screen.findAllByPlaceholderText(
+      'https://discord.com/api/webhooks/...'
+    );
+    await u.type(inputs[0], 'https://x');
+    expect(await screen.findAllByRole('button', { name: '저장' })).toHaveLength(2);
+
+    await u.click(screen.getAllByText('프로젝트이')[0]);
+    await waitFor(() => {
+      expect(useUIStore.getState().selectedProjectId).toBe('p2');
+    });
+    // 전환 후: 입력은 p2 의 서버 값, 편집(저장 버튼) 종료
+    const inputsAfter = screen.getAllByPlaceholderText(
+      'https://discord.com/api/webhooks/...'
+    );
+    expect((inputsAfter[0] as HTMLInputElement).value).toBe('https://discord.com/api/webhooks/p2');
+    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument();
+  });
+
+  it('7. 저장 성공 시 편집이 종료되고 입력값은 유지된다', async () => {
+    setupApi({ projects: [makeProject({})] });
+    renderPage();
+    const u = userEvent.setup();
+
+    const inputs = await screen.findAllByPlaceholderText(
+      'https://discord.com/api/webhooks/...'
+    );
+    await u.type(inputs[0], 'https://discord.com/api/webhooks/new');
+    const saveButtons = await screen.findAllByRole('button', { name: '저장' });
+
+    await u.click(saveButtons[0]);
+    await waitFor(() => {
+      expect(mocked.projects.update).toHaveBeenCalledWith(
+        'w1',
+        'p1',
+        { discord_webhook_url: 'https://discord.com/api/webhooks/new' }
+      );
+      expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument();
+    });
+    const inputsAfter = screen.getAllByPlaceholderText(
+      'https://discord.com/api/webhooks/...'
+    );
+    expect((inputsAfter[0] as HTMLInputElement).value).toBe('https://discord.com/api/webhooks/new');
+  });
+
+  it('8. 편집 중 서버 값이 외부에서 바뀌면 편집이 리셋되고 서버 값이 표시된다', async () => {
+    setupApi({ projects: [makeProject({})] });
+    const queryClient = renderPage();
+    const u = userEvent.setup();
+
+    const inputs = await screen.findAllByPlaceholderText(
+      'https://discord.com/api/webhooks/...'
+    );
+    await u.type(inputs[0], 'https://my-draft');
+    expect(await screen.findAllByRole('button', { name: '저장' })).toHaveLength(2);
+
+    // 다른 세션이 webhook URL 을 바꾼 뒤 refetch 가 도착한 상황
+    mocked.projects.listMine.mockReturnValue(
+      ok([makeProject({ discord_webhook_url: 'https://discord.com/api/webhooks/external' })]) as never
+    );
+    await queryClient.invalidateQueries({ queryKey: ['projects', 'mine'] });
+
+    await waitFor(() => {
+      const refreshed = screen.getAllByPlaceholderText(
+        'https://discord.com/api/webhooks/...'
+      );
+      expect((refreshed[0] as HTMLInputElement).value).toBe(
+        'https://discord.com/api/webhooks/external'
+      );
+    });
+    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument();
   });
 });
