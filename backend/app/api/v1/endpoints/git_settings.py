@@ -3,20 +3,14 @@
 설계서: 2026-04-26-ai-task-automation-design.md §5.2, §9
 """
 
-import logging
 from uuid import UUID
 
-from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_project_member
-from app.config import settings
-from app.core.crypto import decrypt_secret, encrypt_secret, generate_webhook_secret
+from app.config import settings  # noqa: F401 — 테스트가 이 모듈 경로로 pslog_public_url 을 monkeypatch 함
 from app.database import get_db
-from app.models.git_push_event import GitPushEvent
-from app.models.handoff import Handoff
 from app.models.workspace import WorkspaceRole
 from app.schemas.git_settings import (
     GitEventSummary,
@@ -26,20 +20,9 @@ from app.schemas.git_settings import (
     ReprocessResponse,
     WebhookRegisterResponse,
 )
-from app.services import github_hook_service, project_service
-
-logger = logging.getLogger(__name__)
+from app.services import git_settings_service, project_service
 
 router = APIRouter(prefix="/projects", tags=["git-settings"])
-
-
-def _public_webhook_url() -> str:
-    base = settings.pslog_public_url.rstrip("/")
-    return f"{base}/api/v1/webhooks/github"
-
-
-def _normalize_url(url: str) -> str:
-    return url.rstrip("/").lower()
 
 
 def _build_git_settings_response(project) -> GitSettingsResponse:
@@ -52,7 +35,7 @@ def _build_git_settings_response(project) -> GitSettingsResponse:
         last_synced_commit_sha=project.last_synced_commit_sha,
         has_webhook_secret=project.webhook_secret_encrypted is not None,
         has_github_pat=project.github_pat_encrypted is not None,
-        public_webhook_url=_public_webhook_url(),
+        public_webhook_url=git_settings_service.public_webhook_url(),
         # Phase 6
         discord_enabled=(
             project.discord_webhook_url is not None
@@ -92,21 +75,9 @@ async def patch_git_settings(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    data = update.model_dump(exclude_unset=True)
-    for key in (
-        "git_repo_url",
-        "git_default_branch",
-        "plan_path",
-        "handoff_dir",
-        "handoff_skip_branches",
-    ):
-        if key in data:
-            setattr(project, key, data[key])
-    if "github_pat" in data and data["github_pat"]:
-        project.github_pat_encrypted = encrypt_secret(data["github_pat"])
-
-    await db.commit()
-    await db.refresh(project)
+    await git_settings_service.update_settings(
+        db, project, update.model_dump(exclude_unset=True)
+    )
 
     return _build_git_settings_response(project)
 
@@ -131,10 +102,7 @@ async def reset_discord(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    project.discord_consecutive_failures = 0
-    project.discord_disabled_at = None
-    await db.commit()
-    await db.refresh(project)
+    await git_settings_service.reset_discord(db, project)
 
     return _build_git_settings_response(project)
 
@@ -162,55 +130,17 @@ async def register_webhook(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # B1 / I-2: 권한 검증 후 row lock 획득.
-    # 동시 OWNER 호출 시 후행은 여기서 대기 → 선행 commit 후 webhook_secret_encrypted 갱신본 보고 진행.
-    # final commit 시 lock release. process_event 와 같은 단일 outer commit 구조라 안전.
-    await db.refresh(project, with_for_update={"nowait": False})
-
-    if not project.git_repo_url:
-        raise HTTPException(status_code=400, detail="git_repo_url 미설정")
-    if project.github_pat_encrypted is None:
-        raise HTTPException(status_code=400, detail="GitHub PAT 미설정")
-
     try:
-        pat = decrypt_secret(project.github_pat_encrypted)
-    except InvalidToken:
-        logger.error("PAT 복호화 실패 — Fernet 마스터 키 mismatch project=%s", project_id)
-        raise HTTPException(status_code=500, detail="PAT 복호화 실패")
-
-    callback_url = _public_webhook_url()
-    new_secret = generate_webhook_secret()
-
-    existing_hooks = await github_hook_service.list_hooks(project.git_repo_url, pat)
-    target = _normalize_url(callback_url)
-    matching = next(
-        (h for h in existing_hooks if _normalize_url(h.get("config", {}).get("url") or "") == target),
-        None,
-    )
-
-    if matching is not None:
-        hook = await github_hook_service.update_hook(
-            project.git_repo_url, pat,
-            hook_id=matching["id"],
-            callback_url=callback_url,
-            secret=new_secret,
-        )
-        was_existing = True
-    else:
-        hook = await github_hook_service.create_hook(
-            project.git_repo_url, pat,
-            callback_url=callback_url,
-            secret=new_secret,
-        )
-        was_existing = False
-
-    project.webhook_secret_encrypted = encrypt_secret(new_secret)
-    await db.commit()
+        result = await git_settings_service.register_webhook(db, project)
+    except git_settings_service.WebhookConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except git_settings_service.PatDecryptError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
     return WebhookRegisterResponse(
-        webhook_id=hook["id"],
-        was_existing=was_existing,
-        public_webhook_url=callback_url,
+        webhook_id=result.hook_id,
+        was_existing=result.was_existing,
+        public_webhook_url=result.callback_url,
     )
 
 
@@ -223,18 +153,9 @@ async def list_handoffs(
     _role: WorkspaceRole = Depends(require_project_member(hide_existence=True)),
 ):
     """프로젝트의 handoff 이력 조회 (branch 필터 + limit clamp)."""
-    limit = max(1, min(limit, 200))
-
-    stmt = (
-        select(Handoff)
-        .where(Handoff.project_id == project_id)
-        .order_by(Handoff.pushed_at.desc())
-        .limit(limit)
+    rows = await git_settings_service.list_handoffs(
+        db, project_id, branch=branch, limit=limit
     )
-    if branch is not None:
-        stmt = stmt.where(Handoff.branch == branch)
-
-    rows = (await db.execute(stmt)).scalars().all()
     return [
         HandoffSummary(
             id=h.id,
@@ -263,21 +184,9 @@ async def list_git_events(
 
     설계서: 2026-05-01-phase-5-followup-b2-design.md §2.3
     """
-    limit = max(1, min(limit, 200))
-
-    stmt = (
-        select(GitPushEvent)
-        .where(GitPushEvent.project_id == project_id)
-        .order_by(GitPushEvent.received_at.desc(), GitPushEvent.id.desc())
-        .limit(limit)
+    rows = await git_settings_service.list_git_events(
+        db, project_id, failed_only=failed_only, limit=limit
     )
-    if failed_only:
-        stmt = stmt.where(
-            GitPushEvent.processed_at.is_not(None),
-            GitPushEvent.error.is_not(None),
-        )
-
-    rows = (await db.execute(stmt)).scalars().all()
     return [
         GitEventSummary(
             id=e.id,
@@ -308,29 +217,14 @@ async def reprocess_git_event(
     )),
 ):
     """실패한 git push event 를 수동으로 재처리 큐에 추가 (OWNER 전용)."""
-    event = await db.get(GitPushEvent, event_id)
-    if event is None or event.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    # B1 / I-4 layer 1: in-flight 거부.
-    # processed_at IS NULL = 초기 BackgroundTask 가 아직 처리 중이거나 reaper 회수 대기.
-    # 이 시점에 reprocess 트리거하면 두 process_event 가 같은 event 로 동시 실행 → TaskEvent 중복.
-    # reaper 가 5분 grace 후 회수 가능하므로 사용자는 기다리거나 재처리 대신 reaper 에 위임.
-    if event.processed_at is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Event is still being processed — please try again shortly",
-        )
-
-    if event.processed_at is not None and event.error is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Event already processed successfully — nothing to reprocess",
-        )
-
-    event.processed_at = None
-    event.error = None
-    await db.commit()
+    try:
+        await git_settings_service.get_reprocessable_event(db, project_id, event_id)
+    except git_settings_service.EventNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except git_settings_service.EventInFlightError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except git_settings_service.EventAlreadyProcessedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     # BackgroundTask — Phase 4 webhook endpoint 의 _run_sync_in_new_session 재사용.
     # module-level 참조를 통해 호출해야 테스트 monkeypatch 가 동작함.
