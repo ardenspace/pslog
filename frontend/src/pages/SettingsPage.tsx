@@ -21,6 +21,11 @@ export function SettingsPage() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
   const serverUsername = user?.username ?? '';
+  // base 가 어긋난 draft 는 무시가 아니라 폐기 — 서버 값이 A→B→A 로 돌아와도
+  // 낡은 draft 가 부활하지 않도록 (원본 effect 의 "매 변경 리셋"과 동일).
+  if (usernameDraft && usernameDraft.base !== serverUsername) {
+    setUsernameDraft(null);
+  }
   const username =
     usernameDraft && usernameDraft.base === serverUsername
       ? usernameDraft.value
