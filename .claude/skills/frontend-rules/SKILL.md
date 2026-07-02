@@ -1,3 +1,8 @@
+---
+name: frontend-rules
+description: pslog frontend(React/TypeScript/Tailwind) 코드를 작성하거나 수정할 때 반드시 사용. 파일 구조, 컴포넌트/훅 패턴, API 클라이언트 중앙화, 타입/스타일 규칙을 담는다.
+---
+
 # Frontend Development Rules
 
 Frontend 코드를 작성하거나 수정할 때 이 가이드를 따릅니다.
