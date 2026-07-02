@@ -297,6 +297,11 @@ async def test_post_webhook_updates_existing_hook(
     monkeypatch.setattr(hook_mod, "list_hooks", fake_list_hooks)
     monkeypatch.setattr(hook_mod, "create_hook", fake_create_hook)
     monkeypatch.setattr(hook_mod, "update_hook", fake_update_hook)
+    # 로컬 .env 의 PSLOG_PUBLIC_URL 이 뭐든 fake_list_hooks 의 config.url 과 맞게 고정
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.git_settings.settings.pslog_public_url",
+        "http://localhost:8000",
+    )
 
     token = _auth_token(user)
     res = await client_with_db.post(

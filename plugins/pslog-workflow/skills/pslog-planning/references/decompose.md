@@ -9,7 +9,7 @@
 - `(E#)` — 실행계획 §5 lock-in 백링크 (해당 task 가 그 결정을 구현할 때).
 - `@assignee` — 역할 담당.
 - backtick 영향파일.
-- heavy task 면 `(deep)` 마커도 (부모 무게 게이트 — pslog-workflow `references/weight-gate.md`).
+- heavy task 면 `(deep)` 마커도 (부모 무게 게이트 — pslog-workflow의 `../../pslog-workflow/references/weight-gate.md`).
 
 ## lane
 - 병렬 가능 그룹을 PLAN 노트에 `병렬 가능: lane A (task-001/002) …` 로. 실행계획 §8 의존성에서 도출.

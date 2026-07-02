@@ -1,0 +1,65 @@
+# pslog CI — 테스트/빌드/플러그인 검증만. 배포는 하지 않는다 (README 배포 섹션 참조).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      # testcontainers 가 postgres:16-alpine 을 직접 띄움 — runner 의 docker 사용
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # lint 는 기존 코드에 pre-existing 에러 7개가 있어 아직 게이트에 안 넣음 — 정리 후 추가
+      - run: bun run build
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate plugin JSON
+        run: |
+          python3 -m json.tool .claude-plugin/marketplace.json > /dev/null
+          python3 -m json.tool plugins/pslog-workflow/.claude-plugin/plugin.json > /dev/null
+          python3 -m json.tool plugins/pslog-workflow/hooks/hooks.json > /dev/null
+      - name: Hook script syntax + behavior
+        run: |
+          sh -n plugins/pslog-workflow/bin/inject-pslog-context.sh
+          # PLAN.md 없는 dir → 무출력 + exit 0
+          out=$(cd /tmp && CLAUDE_PROJECT_DIR=/tmp sh "$GITHUB_WORKSPACE/plugins/pslog-workflow/bin/inject-pslog-context.sh")
+          test -z "$out"
+          # PLAN.md 있는 dir → 유효 JSON + 3스킬 언급
+          mkdir -p /tmp/with-plan && touch /tmp/with-plan/PLAN.md
+          CLAUDE_PROJECT_DIR=/tmp/with-plan sh plugins/pslog-workflow/bin/inject-pslog-context.sh | python3 -c "
+          import json, sys
+          ctx = json.load(sys.stdin)['hookSpecificOutput']['additionalContext']
+          assert all(s in ctx for s in ('pslog-planning', 'pslog-workflow', 'pslog-refactor')), ctx
+          "
+      - name: Skill frontmatter present
+        run: |
+          for f in plugins/pslog-workflow/skills/*/SKILL.md; do
+            head -1 "$f" | grep -qx -- '---' || { echo "missing frontmatter: $f"; exit 1; }
+            grep -q '^description:' "$f" || { echo "missing description: $f"; exit 1; }
+          done

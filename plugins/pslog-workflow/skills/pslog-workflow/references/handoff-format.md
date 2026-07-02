@@ -10,3 +10,5 @@
 - 자유 노트(선택): `### 마지막 커밋` / `### 다음` / `### 블로커`.
 - 결정 포착(선택): `### 결정` — 구현이 기획과 달라지면 1~2줄. PR 때 DECISIONS.md로 승격하고 `→ DECISIONS` 마킹.
 - git push 직전 반드시 이 파일 commit (미갱신 push → pslog Discord ⚠️).
+- 아카이빙: 30일 지난 날짜 섹션은 `handoffs/archive/{같은 파일명}.md` 로 이동(append) — active 파일을 얇게 유지.
+  pslog 파서는 `handoffs/` 직하만 읽으므로 archive는 동기화 대상 아님. 이동은 섹션 단위 그대로(수정 금지).

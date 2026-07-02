@@ -1,3 +1,8 @@
+---
+name: backend-rules
+description: pslog backend(FastAPI/SQLAlchemy) 코드를 작성하거나 수정할 때 반드시 사용. 라우터→서비스 분리, 응답/에러 표준, DB/보안 규칙을 담는다.
+---
+
 # Backend Development Rules
 
 Backend 코드를 작성하거나 수정할 때 이 가이드를 따릅니다.

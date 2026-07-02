@@ -17,7 +17,7 @@ description: pslog로 관리되는 프로젝트에서 행동은 그대로 두고
 
 ## 흐름 (각 → 에서 멈춰 승인)
 
-1. **무게 선언** — `pslog-workflow` 의 `references/weight-gate.md` 3-트리거로 light/heavy 판정 → **사용자 확인.**
+1. **무게 선언** — `pslog-workflow` 의 무게 게이트(`../pslog-workflow/references/weight-gate.md`) 3-트리거로 light/heavy 판정 → **사용자 확인.**
 2. **코드 진단** — `references/diagnose.md` 의 렌즈(DRY·모듈화·타입안전 = CLAUDE.md 원칙 + 코드 스멜·결합·복잡도 핫스팟·데드코드)로 "어디가/왜 아픈가 + 영향 범위"를 뽑는다. 넓은 진단은 서브에이전트 코드리뷰 재사용.
 3. **범위 확정** — 무엇을 건드리고 **무엇은 안 건드리나(경계)** 를 명시 → **사용자 승인.** (리팩토링은 범위가 새는 게 최대 리스크.)
 4. **동작보존 계약** — `references/preservation-contract.md`:
