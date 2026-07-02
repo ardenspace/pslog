@@ -5,6 +5,7 @@
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TaskModal } from '@/components/board/TaskModal';
@@ -135,5 +136,28 @@ describe('TaskModal 초기화 (characterization)', () => {
     );
     expect(screen.getByDisplayValue('두 번째 태스크')).toBeInTheDocument();
     expect(screen.getByText('Blocked')).toBeInTheDocument();
+  });
+
+  it('create 모달이 열린 채 무관한 rerender 로는 리셋되지 않고, currentUserId 변경 시엔 리셋된다', async () => {
+    const u = userEvent.setup();
+    const createProps = {
+      mode: 'create',
+      projectId: 'p1',
+      members,
+      isOpen: true,
+      onClose: () => {},
+    } as const;
+    const { rerenderModal } = renderModal(<TaskModal {...createProps} currentUserId="u1" />);
+
+    await u.type(screen.getByPlaceholderText('태스크 제목'), '입력 중이던 제목');
+
+    // 같은 props 로 rerender — 초기화 effect 재발화 없이 편집값 유지
+    rerenderModal(<TaskModal {...createProps} currentUserId="u1" />);
+    expect(screen.getByDisplayValue('입력 중이던 제목')).toBeInTheDocument();
+
+    // currentUserId 변경 — 리셋 + 새 담당자 기본값
+    rerenderModal(<TaskModal {...createProps} currentUserId="u2" />);
+    expect(screen.getByPlaceholderText('태스크 제목')).toHaveValue('');
+    expect(screen.getByText('세종 (나)')).toBeInTheDocument();
   });
 });
