@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { WeekRow } from './WeekRow';
+import { getMonday } from './weekUtils';
 import type { Task } from '@/types/task';
 
 interface WeekViewProps {
@@ -32,15 +33,6 @@ function isSameDay(d1: Date, d2: Date): boolean {
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
   );
-}
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
 }
 
 export function WeekView({ tasks, weekStart, onWeekChange, onTaskClick }: WeekViewProps) {
@@ -165,5 +157,3 @@ export function WeekView({ tasks, weekStart, onWeekChange, onTaskClick }: WeekVi
     </div>
   );
 }
-
-export { getMonday };

@@ -32,7 +32,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      # lint 는 기존 코드에 pre-existing 에러 7개가 있어 아직 게이트에 안 넣음 — 정리 후 추가
+      - run: bun run lint
+      - run: bun run test
       - run: bun run build
 
   plugin:

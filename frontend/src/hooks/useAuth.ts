@@ -48,6 +48,7 @@ export function useAuth() {
     try {
       await api.auth.logout();
     } catch {
+      // logout API 실패는 무시 — 아래 로컬 세션 정리는 항상 수행되어야 함
     }
     storeLogout();
     queryClient.clear();
