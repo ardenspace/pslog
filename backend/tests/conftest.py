@@ -14,6 +14,10 @@ import uuid
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://placeholder/pslog_test")
 os.environ.setdefault("SECRET_KEY", "test-secret-not-used-by-tests")
+# 테스트 전용 고정 Fernet 키 — .env 없는 환경(CI)에서 Settings 부팅용. 실키는 .env 가 우선.
+os.environ.setdefault(
+    "PSLOG_FERNET_KEY", "aDM6IRpFNLajrRQ1NiZWwN5fJaEMJEOpt94SqahZ5UY="
+)
 
 import pytest
 import psycopg
