@@ -18,6 +18,7 @@ docs/tasks/task-012/brief.md                                ← light
 - 완료조건(DoD): ☐ 모든 Button 토큰 사용  ☐ 다크모드 회귀 없음
 - 영향파일: `theme.ts`, `Button.tsx`
 - 검증: pnpm typecheck
+- 남길 테스트: 없음 — 순수 토큰 교체, typecheck 가 회귀 커버 (자동화 가능분 있으면 T# 로 명시)
 ```
 
 ## ② heavy → spec.md (설계, 먼저)
@@ -39,9 +40,10 @@ docs/tasks/task-012/brief.md                                ← light
 ```
 # task-007 plan   (spec: ./spec.md)
 - 아키텍처 한 줄 + 파일 구조(신규/수정)
-- Step 분해:  - [ ] Step 1 …  - [ ] Step 2 …
+- Step 분해:  - [ ] Step 1 …  - [ ] Step N: 회귀 테스트 (T1~Tn 중 자동화 가능분 — 없으면 이유 명시)
 - 각 Step 검증 명령 + 롤백
 ```
 
 완료조건(DoD)은 모든 문서에서 1급 필드 — brief엔 `완료조건(DoD)` 항목으로, spec엔 목표(§2)의
 완료 기준으로, plan엔 각 Step 검증으로 반드시 드러난다. 모든 문서 제목에 task-NNN 백링크.
+`남길 테스트`/회귀 Step 도 1급 — brief 의 `남길 테스트` 필드, plan 의 마지막 Step 으로 항상 존재한다.

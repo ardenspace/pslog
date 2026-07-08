@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "pslog",
   "description": "pslog 플랫폼이 배포하는 워크플로 스킬 마켓플레이스",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "owner": { "name": "ardenspace" },
   "plugins": [
     {
