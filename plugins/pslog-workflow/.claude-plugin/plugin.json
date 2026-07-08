@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "pslog-workflow",
   "displayName": "pslog Workflow",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "pslog로 관리되는 프로젝트의 기획~구현 워크플로. pslog-planning(feature 아이디어 → 실행계획 → PLAN.md 분해) + pslog-refactor(코드 진단 → 동작 보존 리팩토링) + pslog-workflow(PLAN task → 무게 게이트 → 코드), 각 단계 사람 승인.",
   "author": { "name": "ardenspace" },
   "homepage": "https://github.com/ardenspace/pslog",
