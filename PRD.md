@@ -3,8 +3,16 @@
 - 구현자는 이 문서를 먼저 읽고, 모호한 부분은 DECISIONS.md 또는 Open Questions를 확인한다.
 - MVP 범위는 SCOPE.md가 최종 기준이다.
 
+> **2026-07 업데이트** — 이 문서는 MVP(2026-02) 시점의 기준 문서이며, MVP는 완료됐다.
+> 이후 제품은 아래 한 문장 정의를 넘어 확장됐고, **MVP 이후 기능의 source of truth는
+> `docs/superpowers/specs/` 의 설계서 시리즈와 DECISIONS.md** 다.
+> 확장 스코프 요약은 SCOPE.md “현재 스코프”, 구현 현황은 README “구현 상태” 참조.
+
 ## 2. 제품 한 문장 정의
-pslog는 팀(워크스페이스)에서 태스크를 등록하고, Kanban 보드(메인)와 Week 뷰(보조)로 진행을 공유하며, 필요 시 외부에 Viewer 권한으로 읽기 전용 공유 링크를 제공하는 협업 태스크 툴이다.
+
+**MVP (2026-02):** pslog는 팀(워크스페이스)에서 태스크를 등록하고, Kanban 보드(메인)와 Week 뷰(보조)로 진행을 공유하며, 필요 시 외부에 Viewer 권한으로 읽기 전용 공유 링크를 제공하는 협업 태스크 툴이다.
+
+**현재 (2026-07):** 위에 더해, 추적 대상 repo의 `PLAN.md`(체크박스 task = source of truth)·`handoffs/{branch}.md`·git push webhook·앱 로그를 ingest 해 태스크 대시보드, 계획↔실제 드리프트 감지, 에러 로그 그룹핑, Discord 알림을 제공하는 **개발팀 협업 툴**이다.
 
 ## 3. 목표/우선순위
 ### 3.1 1차 목표(학습)
