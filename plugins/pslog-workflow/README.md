@@ -7,6 +7,7 @@
 기획에서 구현까지 모든 단계 전이에 사람 승인 게이트를 둔다. 반복 실행은 에이전트가, 판단과 승인은 사람이 맡는다.
 
 <br />
+
 ## 설치
 
 ```
@@ -15,6 +16,7 @@
 ```
 
 <br />
+
 ## 전제
 
 - repo 루트 `PLAN.md`의 `## 태스크` 아래 다음 포맷의 task가 있다 (pslog가 파싱해 대시보드 보드로 가져가는 포맷과 동일):
@@ -26,6 +28,7 @@
 - 작업 기록은 `handoffs/{브랜치}.md` — 포맷은 [`skills/pslog-workflow/references/handoff-format.md`](skills/pslog-workflow/references/handoff-format.md).
 
 <br />
+
 ## 구성 — 스킬 3개 라우팅
 
 | 스킬 | 언제 | 하는 일 |
@@ -37,6 +40,7 @@
 수동 호출: `/pslog-workflow:pslog-planning` · `/pslog-workflow:pslog-workflow` · `/pslog-workflow:pslog-refactor`
 
 <br />
+
 ### SessionStart 훅
 
 repo 루트에 `PLAN.md`가 있으면(= pslog 관리 프로젝트) 세션 시작 시 위 라우팅 안내를 컨텍스트에 주입한다 — 팀원이 CLAUDE.md에 연동 규칙을 복붙할 필요가 없다.
@@ -44,6 +48,7 @@ PLAN.md 없는 프로젝트에서는 아무것도 하지 않는다(조용히 exi
 `startup|resume|clear|compact` 전부에서 발화해 컴팩션 후에도 안내가 유지된다.
 
 <br />
+
 ## pslog-planning — 아이디어 → 실행계획 → PLAN.md
 
 feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으로 탄탄한 기획으로 만든다.
@@ -61,6 +66,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 상세: [`lenses.md`](skills/pslog-planning/references/lenses.md) · [`execution-plan-template.md`](skills/pslog-planning/references/execution-plan-template.md) · [`decompose.md`](skills/pslog-planning/references/decompose.md)
 
 <br />
+
 ## pslog-workflow — task → 코드
 
 할당받은 task 하나를 무게에 맞는 준비 문서로 정리한 뒤 코드로 옮긴다.
@@ -85,6 +91,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 상세: [`weight-gate.md`](skills/pslog-workflow/references/weight-gate.md) · [`templates.md`](skills/pslog-workflow/references/templates.md) · [`handoff-format.md`](skills/pslog-workflow/references/handoff-format.md)
 
 <br />
+
 ## pslog-refactor — 동작 보존 리팩토링
 
 "행동은 그대로, 구조만 바꾼다"를 테스트로 증명하는 흐름. 중복 제거·모듈 분리·네이밍 정리·데드코드 제거가 대상이고, 행동을 *바꾸는* 버그픽스/기능변경은 `pslog-workflow`, 새 기능 기획은 `pslog-planning`으로 라우팅한다 (애매하면 관통하지 않고 먼저 묻는다).
@@ -92,6 +99,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 흐름: 무게 선언 → 코드 진단(DRY·모듈화·타입안전 + 코드 스멜·결합·복잡도 핫스팟) → **범위 확정** — 무엇을 건드리고 무엇은 안 건드리는지 경계 승인(리팩토링 최대 리스크는 범위가 새는 것) → **동작보존 계약** 승인 → `pslog-workflow` 엔진으로 코드화.
 
 <br />
+
 **동치 증명 기준**:
 
 - **light** — 리팩토링 전 기존 관련 테스트가 green임을 확인해 두고, 후에 같은 테스트가 그대로 green이면 "구조만 바꿨다"가 증명된다.
@@ -100,6 +108,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 상세: [`diagnose.md`](skills/pslog-refactor/references/diagnose.md) · [`preservation-contract.md`](skills/pslog-refactor/references/preservation-contract.md)
 
 <br />
+
 ## 승인 게이트 전체 맵
 
 | 단계 전이 | 승인받을 것 |
@@ -119,6 +128,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 승인 없이 다음 단계 진입 금지 — 이 멈춤이 이 방법론의 핵심 안전장치다.
 
 <br />
+
 ## 파일 구조
 
 ```
@@ -133,6 +143,7 @@ pslog-workflow/
 ```
 
 <br />
+
 ## 버전
 
 현재 v0.3.1. 변경 이력은 repo 커밋 히스토리 참조. 스킬 텍스트/훅이 바뀌면 minor 버전을 올린다.
