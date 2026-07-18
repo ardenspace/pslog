@@ -6,6 +6,7 @@
 **핵심 설계 원칙 — 에이전트는 절대 자동으로 관통하지 않는다.**
 기획에서 구현까지 모든 단계 전이에 사람 승인 게이트를 둔다. 반복 실행은 에이전트가, 판단과 승인은 사람이 맡는다.
 
+
 ## 설치
 
 ```
@@ -23,6 +24,7 @@
 - 사용자별 username은 각자 `~/.claude/CLAUDE.md`에 기록한다 (예: "내 pslog username: arden") — "내 할 일 알려줘"에서 task 필터 기준이 된다.
 - 작업 기록은 `handoffs/{브랜치}.md` — 포맷은 [`skills/pslog-workflow/references/handoff-format.md`](skills/pslog-workflow/references/handoff-format.md).
 
+
 ## 구성 — 스킬 3개 라우팅
 
 | 스킬 | 언제 | 하는 일 |
@@ -33,11 +35,13 @@
 
 수동 호출: `/pslog-workflow:pslog-planning` · `/pslog-workflow:pslog-workflow` · `/pslog-workflow:pslog-refactor`
 
+
 ### SessionStart 훅
 
 repo 루트에 `PLAN.md`가 있으면(= pslog 관리 프로젝트) 세션 시작 시 위 라우팅 안내를 컨텍스트에 주입한다 — 팀원이 CLAUDE.md에 연동 규칙을 복붙할 필요가 없다.
 PLAN.md 없는 프로젝트에서는 아무것도 하지 않는다(조용히 exit 0). POSIX sh만 사용 — 별도 런타임 의존 없음.
 `startup|resume|clear|compact` 전부에서 발화해 컴팩션 후에도 안내가 유지된다.
+
 
 ## pslog-planning — 아이디어 → 실행계획 → PLAN.md
 
@@ -54,6 +58,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 이후 각 task는 `pslog-workflow`로 코드화한다.
 
 상세: [`lenses.md`](skills/pslog-planning/references/lenses.md) · [`execution-plan-template.md`](skills/pslog-planning/references/execution-plan-template.md) · [`decompose.md`](skills/pslog-planning/references/decompose.md)
+
 
 ## pslog-workflow — task → 코드
 
@@ -84,12 +89,14 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 
 흐름: 무게 선언 → 코드 진단(DRY·모듈화·타입안전 + 코드 스멜·결합·복잡도 핫스팟) → **범위 확정** — 무엇을 건드리고 무엇은 안 건드리는지 경계 승인(리팩토링 최대 리스크는 범위가 새는 것) → **동작보존 계약** 승인 → `pslog-workflow` 엔진으로 코드화.
 
+
 **동치 증명 기준**:
 
 - **light** — 리팩토링 전 기존 관련 테스트가 green임을 확인해 두고, 후에 같은 테스트가 그대로 green이면 "구조만 바꿨다"가 증명된다.
 - **heavy** — 기존 테스트가 없거나 부족하면 리팩토링 *전에* 현재 동작을 가치 판단 없이 그대로 캡처하는 **characterization 테스트**를 먼저 작성하고, 후에 동일하게 green이면 증명된다.
 
 상세: [`diagnose.md`](skills/pslog-refactor/references/diagnose.md) · [`preservation-contract.md`](skills/pslog-refactor/references/preservation-contract.md)
+
 
 ## 승인 게이트 전체 맵
 
@@ -109,6 +116,7 @@ feature 아이디어를 5개의 렌즈에 순서대로 통과시켜 기술적으
 
 승인 없이 다음 단계 진입 금지 — 이 멈춤이 이 방법론의 핵심 안전장치다.
 
+
 ## 파일 구조
 
 ```
@@ -121,6 +129,7 @@ pslog-workflow/
     ├── pslog-workflow/           # SKILL.md + references/ (무게 게이트, 템플릿, handoff 포맷, 리뷰어 프롬프트)
     └── pslog-refactor/           # SKILL.md + references/ (진단 렌즈, 동작보존 계약)
 ```
+
 
 ## 버전
 
